@@ -1,0 +1,78 @@
+{
+  "name": "MrZyroWaifu",
+  "description": "A Telegram bot built with python-telegram-bot and pyrogram, using MongoDB for data storage.",
+  "repository": "https://github.com/yourusername/your-repo-name",
+  "keywords": ["python", "telegram-bot", "pyrogram", "mongodb"],
+  "env": {
+    "API_ID": {
+      "description": "Telegram API ID for the bot",
+      "value": "24965086",
+      "required": true
+    },
+    "API_HASH": {
+      "description": "Telegram API Hash for the bot",
+      "value": "b9c764ce47c010e1a887f19fea54f648",
+      "required": true
+    },
+    "TOKEN": {
+      "description": "Telegram Bot Token",
+      "value": "7687059872:AAF9eK6Xc-UgiGPvui9i9XXA1YHrSxdhlI0",
+      "required": true
+    },
+    "GLOG": {
+      "description": "Username or ID of the log channel",
+      "value": "Zlog12",
+      "required": true
+    },
+    "CHARA_CHANNEL_ID": {
+      "description": "Username or ID of the character channel",
+      "value": "Zlog12",
+      "required": true
+    },
+    "SUPPORT_CHAT_ID": {
+      "description": "ID of the support chat",
+      "value": "-1002309742084",
+      "required": true
+    },
+    "MONGO_URL": {
+      "description": "MongoDB connection URL",
+      "value": "mongodb+srv://Alisha:Alisha123@cluster0.yqcpftw.mongodb.net/?retryWrites=true&w=majority",
+      "required": true
+    },
+    "PHOTO_URL_1": {
+      "description": "First photo URL for the bot",
+      "value": "https://files.catbox.moe/7ccoub.jpg",
+      "required": false
+    },
+    "PHOTO_URL_2": {
+      "description": "Second photo URL for the bot",
+      "value": "https://files.catbox.moe/7ccoub.jpg",
+      "required": false
+    },
+    "SUPPORT_CHAT": {
+      "description": "Support chat URL",
+      "value": "https://t.me/Zyroupdates",
+      "required": true
+    },
+    "UPDATE_CHAT": {
+      "description": "Update chat URL",
+      "value": "https://t.me/ZyroBotCodes",
+      "required": true
+    },
+    "SUDO": {
+      "description": "Comma-separated list of sudo user IDs",
+      "value": "7577185215,5749187175",
+      "required": true
+    },
+    "OWNER_ID": {
+      "description": "Owner's Telegram user ID",
+      "value": "7073835511",
+      "required": true
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
