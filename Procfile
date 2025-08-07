@@ -1,1 +1,2 @@
-worker: bash -c "python3 -m TEAMZYRO & python3 bot.py"
+web: node bot.js
+worker: python -m TEAMZYRO
