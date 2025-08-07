@@ -4,7 +4,7 @@ const NodeCache = require('node-cache');
 
 // Configuration
 const TOKEN = process.env.TOKEN || "8482718820:AAHm-xeEYJlVCH8-KChlKEaLS_WxvOHQ4i8";
-const MONGO_URL = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const MONGO_URL = "mongodb+srv://I-LOVE-PDF-BOT:I-LOVE-PDF-BOT@cluster0.c51o3a9.mongodb.net/?retryWrites=true&w=majority";
 
 // Bot setup
 const bot = new TelegramBot(TOKEN, { polling: true });
@@ -34,7 +34,7 @@ async function initDatabase() {
         await client.connect();
         console.log('Connected to MongoDB');
         
-        db = client.db('shoreskeeper');
+        db = client.db('waifu_collector_bot');
         userCollection = db.collection('user_collection_lmaoooo');
         charactersCollection = db.collection('anime_characters_lol');
     } catch (error) {
