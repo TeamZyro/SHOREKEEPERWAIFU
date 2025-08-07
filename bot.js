@@ -16,6 +16,17 @@ let db, userCollection, charactersCollection;
 const allCharactersCache = new NodeCache({ stdTTL: 300 }); // 5 minutes
 const userCollectionCache = new NodeCache({ stdTTL: 60 });  // 1 minute
 
+const http = require('http');
+
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Bot is running!\n');
+}).listen(PORT, () => {
+  console.log(`Web server listening on port ${PORT}`);
+});
+
+
 // Initialize MongoDB connection
 async function initDatabase() {
     try {
