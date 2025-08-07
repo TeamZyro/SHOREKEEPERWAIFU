@@ -60,7 +60,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 # -------------------------- DATABASE SETUP ------------------------------
 ddw = AsyncIOMotorClient(mongo_url)
-db = zyro['shoreskeeper']
+db = ddw['shoreskeeper']
 collection = db['anime_characters_lol']
 user_totals_collection = db['user_totals_lmaoooo']
 user_collection = db["user_collection_lmaoooo"]
