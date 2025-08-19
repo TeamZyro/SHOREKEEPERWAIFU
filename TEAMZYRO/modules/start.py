@@ -18,8 +18,8 @@ def get_uptime():
 
 # 🔹 START_MEDIA (Fixed: Direct URLs inside code)
 START_MEDIA = [
-    "https://files.catbox.moe/krncm4.mp4",
-    "https://files.catbox.moe/krncm4.mp4"
+    "https://files.catbox.moe/zufhkk.mp4",
+    "https://files.catbox.moe/zufhkk.mp4"
 ]
 
 # 🔹 Function to Generate Private Start Message & Buttons
@@ -150,3 +150,4 @@ async def back_to_home(client, query: CallbackQuery):
         caption,
         reply_markup=InlineKeyboardMarkup(buttons)
     )
+
