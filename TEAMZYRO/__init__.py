@@ -38,7 +38,11 @@ mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?re
 MUSJ_JOIN = os.getenv("MUSJ_JOIN", "Zlog12")
 
 # Modified to support both image and video URLs
-START_MEDIA = os.getenv("START_MEDIA", "https://files.catbox.moe/krncm4.mp4,https://files.catbox.moe/krncm4.mp4").split(',')
+# 🔹 START_MEDIA (Fixed: Direct URLs inside code)
+START_MEDIA = [
+    "https://files.catbox.moe/krncm4.mp4",
+    "https://files.catbox.moe/krncm4.mp4"
+]
 
 PHOTO_URL = [
     os.getenv("PHOTO_URL_1", "https://files.catbox.moe/7ccoub.jpg"),
