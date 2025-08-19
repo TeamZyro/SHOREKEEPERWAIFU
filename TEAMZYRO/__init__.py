@@ -40,8 +40,8 @@ MUSJ_JOIN = os.getenv("MUSJ_JOIN", "Zlog12")
 # Modified to support both image and video URLs
 # 🔹 START_MEDIA (Fixed: Direct URLs inside code)
 START_MEDIA = [
-    "https://files.catbox.moe/krncm4.mp4",
-    "https://files.catbox.moe/krncm4.mp4"
+    "https://files.catbox.moe/zufhkk.mp4",
+    "https://files.catbox.moe/zufhkk.mp4"
 ]
 
 PHOTO_URL = [
