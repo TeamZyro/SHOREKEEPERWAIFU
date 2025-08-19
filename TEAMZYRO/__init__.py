@@ -31,7 +31,7 @@ api_hash = os.getenv("API_HASH", "b9c764ce47c010e1a887f19fea54f648")
 TOKEN = os.getenv("TOKEN", "8482718820:AAEqjcI1vfw-vN23znEj-fHl2yn1UIN7Lyo")
 GLOG = os.getenv("GLOG", "Zlog12")
 CHARA_CHANNEL_ID = os.getenv("CHARA_CHANNEL_ID", "Zlog12")
-SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID", "-1002613232156")
+SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID", "-1002056007523")
 mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 
