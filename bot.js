@@ -34,7 +34,7 @@ async function initDatabase() {
         await client.connect();
         console.log('Connected to MongoDB');
         
-        db = client.db('waifu_collector_bot');
+        db = client.db('shoreskeeper');
         userCollection = db.collection('user_collection_lmaoooo');
         charactersCollection = db.collection('anime_characters_lol');
     } catch (error) {
