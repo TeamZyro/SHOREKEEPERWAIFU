@@ -2,6 +2,11 @@ from TEAMZYRO import *
 from pyrogram import Client, filters
 from pyrogram.types import Message
 import html
+import time
+from datetime import datetime, timedelta
+
+# Lock system to prevent spam
+lock = {}
 
 async def get_balance(user_id):
     user_data = await user_collection.find_one({'id': user_id}, {'balance': 1, 'tokens': 1})
@@ -9,9 +14,113 @@ async def get_balance(user_id):
         return user_data.get('balance', 0), user_data.get('tokens', 0)
     return 0, 0
 
+# Daily gift system
+@app.on_message(filters.command("daily"))
+async def daily_gift(client: Client, message: Message):
+    user_id = message.from_user.id
+    
+    # Check if user is in lock (cooldown)
+    if user_id in lock and time.time() - lock[user_id] < 5:  # 5 second cooldown
+        await message.reply_text("⏰ Please wait before using this command again.")
+        return
+    
+    lock[user_id] = time.time()
+    
+    # Check if user already claimed daily gift
+    user_data = await user_collection.find_one({'id': user_id}, {'last_daily': 1, 'balance': 1})
+    
+    today = datetime.now().date()
+    
+    if user_data and 'last_daily' in user_data:
+        last_daily = user_data['last_daily']
+        if isinstance(last_daily, datetime):
+            last_daily = last_daily.date()
+        elif isinstance(last_daily, str):
+            last_daily = datetime.fromisoformat(last_daily).date()
+        
+        if last_daily == today:
+            await message.reply_text("🎁 You have already claimed your daily gift today! Come back tomorrow.")
+            return
+    
+    # Give daily gift of 100 coins
+    daily_amount = 100
+    await user_collection.update_one(
+        {'id': user_id}, 
+        {
+            '$inc': {'balance': daily_amount},
+            '$set': {'last_daily': datetime.now()}
+        },
+        upsert=True
+    )
+    
+    new_balance, _ = await get_balance(user_id)
+    user_name = html.escape(message.from_user.first_name)
+    
+    await message.reply_text(
+        f"🎁 {user_name}, you received your daily gift!\n"
+        f"💰 +{daily_amount} coins\n"
+        f"💳 New Balance: {new_balance} coins"
+    )
+
+# Weekly gift system
+@app.on_message(filters.command("weekly"))
+async def weekly_gift(client: Client, message: Message):
+    user_id = message.from_user.id
+    
+    # Check if user is in lock (cooldown)
+    if user_id in lock and time.time() - lock[user_id] < 5:  # 5 second cooldown
+        await message.reply_text("⏰ Please wait before using this command again.")
+        return
+    
+    lock[user_id] = time.time()
+    
+    # Check if user already claimed weekly gift
+    user_data = await user_collection.find_one({'id': user_id}, {'last_weekly': 1, 'balance': 1})
+    
+    now = datetime.now()
+    week_start = now - timedelta(days=now.weekday())  # Monday of current week
+    week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    if user_data and 'last_weekly' in user_data:
+        last_weekly = user_data['last_weekly']
+        if isinstance(last_weekly, str):
+            last_weekly = datetime.fromisoformat(last_weekly)
+        
+        if last_weekly >= week_start:
+            next_week = week_start + timedelta(days=7)
+            days_left = (next_week - now).days
+            await message.reply_text(f"🎁 You have already claimed your weekly gift! Next gift available in {days_left} days.")
+            return
+    
+    # Give weekly gift of 2000 coins
+    weekly_amount = 2000
+    await user_collection.update_one(
+        {'id': user_id}, 
+        {
+            '$inc': {'balance': weekly_amount},
+            '$set': {'last_weekly': datetime.now()}
+        },
+        upsert=True
+    )
+    
+    new_balance, _ = await get_balance(user_id)
+    user_name = html.escape(message.from_user.first_name)
+    
+    await message.reply_text(
+        f"🎉 {user_name}, you received your weekly gift!\n"
+        f"💰 +{weekly_amount} coins\n"
+        f"💳 New Balance: {new_balance} coins"
+    )
+
 @app.on_message(filters.command("balance"))
 async def balance(client: Client, message: Message):
     user_id = message.from_user.id
+    
+    if user_id in lock and time.time() - lock[user_id] < 2:  # 2 second cooldown
+        return
+    
+    lock[user_id] = time.time()
+    
     user_balance, user_tokens = await get_balance(user_id)
     response = (
         f"{html.escape(message.from_user.first_name)} \n◈⌠ {user_balance} coins⌡\n"
@@ -22,6 +131,13 @@ async def balance(client: Client, message: Message):
 @app.on_message(filters.command("pay"))
 async def pay(client: Client, message: Message):
     sender_id = message.from_user.id
+    
+    if sender_id in lock and time.time() - lock[sender_id] < 3:  # 3 second cooldown
+        await message.reply_text("⏰ Please wait before sending another payment.")
+        return
+    
+    lock[sender_id] = time.time()
+    
     args = message.command
 
     if len(args) < 2:
