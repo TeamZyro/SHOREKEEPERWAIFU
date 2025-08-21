@@ -179,14 +179,26 @@ async def start_mines(client: Client, message: Message):
         'safe_opened': 0, 'mine_hits': 0, 'message_id': None
     }
     
-    msg = await message.reply_text(
-        "🎮 Welcome to Minesweeper! 3 mines are hidden. "
-        "Survive one mine hit, but two will end the game!\n\n"
-        "You paid 1000 coins to play. Open safe cells and claim rewards!",
+    caption_text = (
+        "🎮 <b>Welcome to Minesweeper!</b>\n\n"
+        "💣 3 mines are hidden in the grid\n"
+        "💰 You paid 1000 coins to play\n"
+        "🛡️ Survive one mine hit, but two will end the game!\n"
+        "🎁 Open safe cells and claim rewards!\n\n"
+        "💎 <b>Rewards:</b>\n"
+        "• 1 safe cell = 600 coins\n"
+        "• 2 safe cells = 1200 coins\n"
+        "• 3 safe cells = 1800 coins\n"
+        "• 4-5 safe cells = Character reward\n"
+        "• 6 safe cells = Character + 2000 coins"
+    )
+    
+    await message.reply_photo(
+        photo="https://files.catbox.moe/szew66.png",
+        caption=caption_text,
+        parse_mode=enums.ParseMode.HTML,
         reply_markup=generate_keyboard(grid, game_id, player_id, 0, 0)
     )
-    game_state[user_id]['message_id'] = msg.id
-
 
 # Handle clicks on the mine grid
 @app.on_callback_query(filters.regex(r'mine_(\S+)_(\d+)_(\d+)_(\d+)(?:_opened)?'))
