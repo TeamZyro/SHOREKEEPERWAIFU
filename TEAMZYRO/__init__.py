@@ -51,8 +51,8 @@ PHOTO_URL = [
 
 STATS_IMG = ["https://files.catbox.moe/gknnju.jpg"] 
 
-SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "https://t.me/Zlog12")
-UPDATE_CHAT = os.getenv("UPDATE_CHAT", "https://t.me/Zlog12")
+SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "https://t.me/zyrosupport")
+UPDATE_CHAT = os.getenv("UPDATE_CHAT", "https://t.me/Zyro_Network")
 SUDO = list(map(int, os.getenv("SUDO", "7073835511,7073835511").split(',')))
 OWNER_ID = int(os.getenv("OWNER_ID", "7073835511"))
 
