@@ -158,26 +158,27 @@ Check out the top users and groups in different categories!
 - Rankings update dynamically as users collect characters or earn coins.
 """
     },
-    "game": {
-        "HELP_NAME": "Gᴀᴍᴇ",
+    "mines": {
+        "HELP_NAME": "Mɪɴᴇs",
         "HELP": """
-🎮 **Classic Word Game Help** 🎮  
+💣 **Minesweeper Game** 💣  
 
-📌 **How to Play:**
-1. Start the game using `/classic`.
-2. Players can join within 60 seconds using `/join`.
-3. The bot will give a random letter, and the current player must form a valid word.
-4. Words must meet the minimum length required for the round.
-5. If a player fails to respond within 30 seconds, they get eliminated.
+🎮 **How to Play:**
+- Start the game using `/mines`.
+- You need **1000 coins** to play.
+- A 3×3 grid hides **3 mines**.
+- You can survive **1 mine hit**, but the 2nd one ends the game.
+- Open safe cells to earn rewards and claim anytime.
 
-🏆 **Winning Condition:**
-- The last remaining player wins the game!
+🏆 **Rewards:**
+- 1 safe cell → 600 coins  
+- 2 safe cells → 1200 coins  
+- 3 safe cells → 1800 coins  
+- 4–5 safe cells → 🎴 Character reward  
+- 6 safe cells → 🎴 Character + 2000 coins  
 
 📝 **Commands:**
-- `/classic` → Start a new game.
-- `/join` → Join an ongoing game.
-
-Enjoy playing! 🎉
+- `/mines` → Start a new Minesweeper game.
 """
     },
     "sips": {
