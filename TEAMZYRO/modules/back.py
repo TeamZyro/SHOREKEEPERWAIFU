@@ -17,6 +17,7 @@ class AutoBackup:
         self.owner_id = OWNER_ID
         self.backup_interval_hours = 24  # Backup every 24 hours
         self.max_backups = 3  # Keep last 3 days of backups
+        self.backup_task = None
         
     async def get_backup_db_name(self, date_str=None):
         """Generate backup database name with date"""
@@ -289,15 +290,13 @@ async def list_backups(client: Client, message: Message):
     except Exception as e:
         await message.reply_text(f"❌ Error listing backups: {str(e)}")
 
-# Start backup system when module loads
+@app.on_ready()
 async def start_backup_system():
-    """Start the backup system in background"""
+    """Start the backup system when bot is ready"""
     try:
-        backup_logger.info("Initializing auto backup system...")
-        # Start backup system in background
-        asyncio.create_task(backup_system.start_auto_backup())
+        backup_logger.info("Bot ready, initializing auto backup system...")
+        # Start backup system in background after bot is ready
+        backup_system.backup_task = asyncio.create_task(backup_system.start_auto_backup())
+        backup_logger.info("Auto backup system task created successfully")
     except Exception as e:
         backup_logger.error(f"Error starting backup system: {e}")
-
-# Schedule backup system startup
-asyncio.create_task(start_backup_system())
