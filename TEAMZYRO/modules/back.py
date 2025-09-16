@@ -17,7 +17,6 @@ class AutoBackup:
         self.owner_id = OWNER_ID
         self.backup_interval_hours = 24  # Backup every 24 hours
         self.max_backups = 3  # Keep last 3 days of backups
-        self.backup_task = None
         
     async def get_backup_db_name(self, date_str=None):
         """Generate backup database name with date"""
@@ -205,25 +204,6 @@ class AutoBackup:
 # Initialize backup system
 backup_system = AutoBackup()
 
-# Start backup system in background task
-async def initialize_backup_system():
-    """Initialize the backup system after bot starts"""
-    try:
-        backup_logger.info("Initializing auto backup system...")
-        # Start backup system in background
-        backup_system.backup_task = asyncio.create_task(backup_system.start_auto_backup())
-        backup_logger.info("Auto backup system initialized successfully")
-    except Exception as e:
-        backup_logger.error(f"Error initializing backup system: {e}")
-
-async def delayed_backup_start():
-    """Start backup system after a delay to ensure bot is ready"""
-    await asyncio.sleep(10)  # Wait 10 seconds for bot to be fully ready
-    await initialize_backup_system()
-
-# Create the delayed start task
-asyncio.create_task(delayed_backup_start())
-
 # Manual backup command for testing/emergency
 @app.on_message(filters.command("backup"))
 @require_power("VIP")
@@ -309,17 +289,33 @@ async def list_backups(client: Client, message: Message):
     except Exception as e:
         await message.reply_text(f"❌ Error listing backups: {str(e)}")
 
-# Start the backup system (owner only)
-@app.on_message(filters.command("startbackup") & filters.user(OWNER_ID))
+# Start backup system command
+@app.on_message(filters.command("startbackup"))
+@require_power("OWNER")
 async def start_backup_system_command(client: Client, message: Message):
-    """Start the backup system (owner only)"""
+    """Start the backup system manually (Owner only)"""
     try:
-        if backup_system.backup_task and not backup_system.backup_task.done():
-            await message.reply_text("🔄 Backup system is already running!")
-            return
-            
-        await initialize_backup_system()
-        await message.reply_text("✅ Auto backup system started successfully!")
+        processing_msg = await message.reply_text("🔄 Starting backup system...")
+        
+        # Start backup system in background
+        asyncio.create_task(backup_system.start_auto_backup())
+        
+        await processing_msg.edit_text("✅ Backup system started successfully!")
+        backup_logger.info("Backup system started manually by owner")
         
     except Exception as e:
         await message.reply_text(f"❌ Error starting backup system: {str(e)}")
+        backup_logger.error(f"Error starting backup system: {e}")
+
+# Auto-start backup system when bot receives first start command
+@app.on_message(filters.command("start") & filters.private)
+async def auto_start_backup_on_bot_ready(client: Client, message: Message):
+    """Auto-start backup system when bot becomes ready"""
+    try:
+        # Check if this is the owner starting the bot
+        if message.from_user.id == OWNER_ID:
+            # Start backup system automatically
+            asyncio.create_task(backup_system.start_auto_backup())
+            backup_logger.info("Backup system auto-started when bot became ready")
+    except Exception as e:
+        backup_logger.error(f"Error auto-starting backup system: {e}")
