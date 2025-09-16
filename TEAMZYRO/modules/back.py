@@ -205,6 +205,25 @@ class AutoBackup:
 # Initialize backup system
 backup_system = AutoBackup()
 
+# Start backup system in background task
+async def initialize_backup_system():
+    """Initialize the backup system after bot starts"""
+    try:
+        backup_logger.info("Initializing auto backup system...")
+        # Start backup system in background
+        backup_system.backup_task = asyncio.create_task(backup_system.start_auto_backup())
+        backup_logger.info("Auto backup system initialized successfully")
+    except Exception as e:
+        backup_logger.error(f"Error initializing backup system: {e}")
+
+async def delayed_backup_start():
+    """Start backup system after a delay to ensure bot is ready"""
+    await asyncio.sleep(10)  # Wait 10 seconds for bot to be fully ready
+    await initialize_backup_system()
+
+# Create the delayed start task
+asyncio.create_task(delayed_backup_start())
+
 # Manual backup command for testing/emergency
 @app.on_message(filters.command("backup"))
 @require_power("VIP")
@@ -290,13 +309,17 @@ async def list_backups(client: Client, message: Message):
     except Exception as e:
         await message.reply_text(f"❌ Error listing backups: {str(e)}")
 
-@app.on_ready()
-async def start_backup_system():
-    """Start the backup system when bot is ready"""
+# Start the backup system (owner only)
+@app.on_message(filters.command("startbackup") & filters.user(OWNER_ID))
+async def start_backup_system_command(client: Client, message: Message):
+    """Start the backup system (owner only)"""
     try:
-        backup_logger.info("Bot ready, initializing auto backup system...")
-        # Start backup system in background after bot is ready
-        backup_system.backup_task = asyncio.create_task(backup_system.start_auto_backup())
-        backup_logger.info("Auto backup system task created successfully")
+        if backup_system.backup_task and not backup_system.backup_task.done():
+            await message.reply_text("🔄 Backup system is already running!")
+            return
+            
+        await initialize_backup_system()
+        await message.reply_text("✅ Auto backup system started successfully!")
+        
     except Exception as e:
-        backup_logger.error(f"Error starting backup system: {e}")
+        await message.reply_text(f"❌ Error starting backup system: {str(e)}")
