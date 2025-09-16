@@ -33,7 +33,7 @@ GLOG = os.getenv("GLOG", "Zlog12")
 CHARA_CHANNEL_ID = os.getenv("CHARA_CHANNEL_ID", "Zlog12")
 SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID", "-1002056007523")
 mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
+backup_mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 MUSJ_JOIN = os.getenv("MUSJ_JOIN", "Zlog12")
 
@@ -51,6 +51,8 @@ PHOTO_URL = [
 
 STATS_IMG = ["https://files.catbox.moe/gknnju.jpg"] 
 
+DB_NAME = "shoreskeeper"
+
 SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "https://t.me/zyrosupport")
 UPDATE_CHAT = os.getenv("UPDATE_CHAT", "https://t.me/Zyro_Network")
 SUDO = list(map(int, os.getenv("SUDO", "7073835511,7073835511").split(',')))
@@ -64,7 +66,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 # -------------------------- DATABASE SETUP ------------------------------
 ddw = AsyncIOMotorClient(mongo_url)
-db = ddw['shoreskeeper']
+db = ddw[DB_NAME]
 collection = db['anime_characters_lol']
 user_totals_collection = db['user_totals_lmaoooo']
 user_collection = db["user_collection_lmaoooo"]
@@ -107,3 +109,7 @@ async def PLOG(text: str):
    )
 
 # ---------------------------- END OF CODE ------------------------------
+
+
+backup_ddw = AsyncIOMotorClient(backup_mongo_url)
+
