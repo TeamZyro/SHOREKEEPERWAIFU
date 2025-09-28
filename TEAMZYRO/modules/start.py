@@ -46,6 +46,7 @@ async def generate_start_message(client, message):
         [InlineKeyboardButton("Sᴜᴘᴘᴏʀᴛ", url=SUPPORT_CHAT), 
          InlineKeyboardButton("Cʜᴀɴɴᴇʟ", url=UPDATE_CHAT)],
         [InlineKeyboardButton("Hᴇʟᴘ", callback_data="open_help")],
+        [InlineKeyboardButton("Owner", url=f"https://t.me/xeno_kakarot")],
     ]
     
     return caption, buttons
@@ -150,4 +151,5 @@ async def back_to_home(client, query: CallbackQuery):
         caption,
         reply_markup=InlineKeyboardMarkup(buttons)
     )
+
 
