@@ -13,16 +13,18 @@ async def rarity_count(client, message):
             return
         
         response_message = "✨ Character Count by Rarity ✨\n\n"
+        total_count = 0  # total character counter
         
         # Loop through each rarity and count the number of characters
         for rarity in distinct_rarities:
-            # Count the number of characters with the current rarity
             count = await collection.count_documents({'rarity': rarity})
-            
-            response_message += f"◈ {rarity} {count} character(s)\n"
+            total_count += count
+            response_message += f"◈ {rarity} — {count} character(s)\n"
+        
+        # Add total count at the end
+        response_message += f"\n💠 Total Characters: {total_count}"
         
         await message.reply_text(response_message)
     
     except Exception as e:
         await message.reply_text(f"⚠️ Error: {str(e)}")
-
