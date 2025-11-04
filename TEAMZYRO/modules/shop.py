@@ -81,10 +81,17 @@ async def set_discount(client, message):
     await message.reply(f"✅ Discount of {percent}% set for {duration} successfully!")
 
 # /shop
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
+
 @app.on_message(filters.command(["shop", "hshop", "hshopmenu"]))
 async def shop_menu(client, message):
     keyboard = [[InlineKeyboardButton(r, callback_data=f"rarity_{r}")] for r in RARITY_PRICE.keys()]
-    await message.reply("🌟 **Choose a rarity to browse the Bazaar!**", reply_markup=InlineKeyboardMarkup(keyboard))
+    await message.reply_photo(
+        photo="https://files.catbox.moe/ohi1vs.jpg",  # <-- your image URL
+        caption="🌟 **Choose a rarity to browse the Bazaar!**",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
 
 # Rarity selection
 @app.on_callback_query(filters.regex(r"^rarity_"))
@@ -104,8 +111,14 @@ async def show_rarity_list(client, callback_query):
         "characters": characters[:5]
     }
 
-    await show_character(client, callback_query.message, user_id)
+    # Instead of text only, send image + text
+    await callback_query.message.reply_photo(
+        photo="https://files.catbox.moe/ohi1vs.jpg",  # same image or based on rarity
+        caption=f"💎 **{rarity} Bazaar!**\n\nHere are some {rarity}-rarity characters to explore!",
+    )
 
+    await show_character(client, callback_query.message, user_id)
+    
 async def show_character(client, msg, user_id):
     data = user_shop_state[user_id]
     chars = data["characters"]
