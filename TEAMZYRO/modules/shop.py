@@ -127,7 +127,6 @@ async def show_rarity_list(client, callback_query):
     await show_character(client, callback_query.message, user_id)
     await callback_query.answer()
 
-
 async def show_character(client, msg, user_id):
     data = user_shop_state[user_id]
     chars = data["characters"]
@@ -139,11 +138,11 @@ async def show_character(client, msg, user_id):
     discounted_price = int(price * (100 - discount) / 100)
 
     caption = (
-        f"💎 **{char['name']}**\n"
-        f"🏯 **Anime:** {char['anime']}\n"
-        f"⭐ **Rarity:** {char['rarity']}\n"
-        f"💰 **Price:** {discounted_price} Star Coins ({discount}% off!)\n"
-        f"🆔 ID: `{char['id']}`"
+        f"💎 <b>{char['name']}</b>\n"
+        f"🏯 <b>Anime:</b> {char['anime']}\n"
+        f"⭐ <b>Rarity:</b> {char['rarity']}\n"
+        f"💰 <b>Price:</b> {discounted_price} Star Coins ({discount}% off!)\n"
+        f"🆔 ID: <code>{char['id']}</code>"
     )
 
     keyboard = [
@@ -159,31 +158,26 @@ async def show_character(client, msg, user_id):
     media_type = "video" if is_video(char["img_url"]) else "photo"
 
     try:
+        # Pehle purana message delete karo
+        await msg.delete()
+
+        # Phir naya message bhejo
         if media_type == "photo":
-            await msg.edit_media(
-                InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML),
-                reply_markup=markup
+            await msg.reply_photo(
+                photo=char["img_url"],
+                caption=caption,
+                reply_markup=markup,
+                parse_mode=ParseMode.HTML
             )
         else:
-            await msg.edit_media(
-                InputMediaVideo(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML),
-                reply_markup=markup
+            await msg.reply_video(
+                video=char["img_url"],
+                caption=caption,
+                reply_markup=markup,
+                parse_mode=ParseMode.HTML
             )
-    except Exception:
-        if media_type == "photo":
-            await client.edit_message_media(
-                chat_id=msg.chat.id,
-                message_id=msg.id,
-                media=InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML),
-                reply_markup=markup
-            )
-        else:
-            await client.edit_message_media(
-                chat_id=msg.chat.id,
-                message_id=msg.id,
-                media=InputMediaVideo(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML),
-                reply_markup=markup
-            )
+    except Exception as e:
+        print(f"Error in show_character: {e}")
 
 
 @app.on_callback_query(filters.regex("^next_char$"))
