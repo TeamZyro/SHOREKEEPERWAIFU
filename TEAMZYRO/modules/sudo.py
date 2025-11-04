@@ -1,243 +1,211 @@
-import random, time, asyncio
+import random
+import logging
+import asyncio
 from datetime import datetime, timedelta
 from bson import ObjectId
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaVideo
+from motor.motor_asyncio import AsyncIOMotorClient
+from TEAMZYRO import *
 
-from TEAMZYRO import *  # TEAMZYRO = Owner ID here
+# Global data
+user_shop_state = {}
 
-TEAMZYRO = 7078181502
+# Permanent default discount (12%)
+DEFAULT_DISCOUNT = 12
 
-# 💰 Base rarity prices
-RARITY_PRICES = {
-    1: {"name": "⚪️ Common", "price": 2000},
-    2: {"name": "🟣 Rare", "price": 5000},
-    3: {"name": "🟡 Legendary", "price": 12000},
-    4: {"name": "🟢 Medium", "price": 3000},
-    5: {"name": "💮 Special Edition", "price": 15000},
-    6: {"name": "🔮 Limited Edition", "price": 20000},
-    7: {"name": "💸 Premium Edition", "price": 25000},
-    8: {"name": "🌤 Summer", "price": 8000},
-    9: {"name": "🎐 Celestial", "price": 18000},
-    10: {"name": "❄️ Winter", "price": 9000},
-    11: {"name": "💝 Valentine", "price": 9500},
-    12: {"name": "🎃 Halloween", "price": 10000},
-    13: {"name": "🎄 Christmas Special", "price": 11000},
-    14: {"name": "🪐 Omniversal", "price": 30000},
-    15: {"name": "🎭 Cosplay Master 🎭", "price": 35000},
-    16: {"name": "🧧 Events", "price": 7000},
-    17: {"name": "🍑 Echhi", "price": 17000},
-    18: {"name": "🎗️ AMV Edition", "price": 13000},
-    19: {"name": "🌟 Luminous", "price": 22000},
+# Rarity price map
+RARITY_PRICE = {
+    "⚪️ Common": 1000,
+    "🟣 Rare": 5000,
+    "🟡 Legendary": 15000,
+    "🟢 Medium": 30000,
+    "💮 Special Edition": 25000,
+    "🔮 Limited Edition": 40000,
+    "💸 Premium Edition": 30000,
+    "🌤 Summer": 35000,
+    "🎐 Celestial": 45000,
+    "❄️ Winter": 20000,
+    "💝 Valentine": 18000,
+    "🎃 Halloween": 16000,
+    "🎄 Christmas Special": 22000,
+    "🪐 Omniversal": 80000,
+    "🎭 Cosplay Master 🎭": 70000,
+    "🧧 Events": 25000,
+    "🍑 Echhi": 30000,
+    "🎗️ AMV Edition": 27000,
+    "🌟 Luminous": 50000,
 }
 
-# 🌟 Default discount
-GLOBAL_DISCOUNT = {"percent": 12, "expires_at": None, "permanent": 12}
+async def get_active_discount():
+    discount = await discounts_collection.find_one({})
+    if discount and discount["expires_at"] > datetime.utcnow():
+        return discount["percent"]
+    return DEFAULT_DISCOUNT
 
-user_shop_data = {}
-refresh_cooldown = {}
+def is_video(url):
+    return any(url.lower().endswith(ext) for ext in [".mp4", ".mov", ".webm"])
 
-# 🧮 Discount calculator
-def get_discounted_price(base_price: int):
-    discount = GLOBAL_DISCOUNT["percent"]
-    return int(base_price - (base_price * discount / 100)) if discount > 0 else base_price
+# /discount <percent> <duration>
+@app.on_message(filters.command("discount"))
+async def set_discount(client, message):
+    if message.from_user.id not in TEAMZYRO:
+        await message.reply("🚫 Only owners can set discounts.")
+        return
 
-
-async def discount_watcher():
-    """Auto reset discount when expired"""
-    while True:
-        if GLOBAL_DISCOUNT["expires_at"] and datetime.utcnow() > GLOBAL_DISCOUNT["expires_at"]:
-            GLOBAL_DISCOUNT["percent"] = GLOBAL_DISCOUNT["permanent"]
-            GLOBAL_DISCOUNT["expires_at"] = None
-            print("🕒 Discount expired → reset to default")
-        await asyncio.sleep(30)
-
-
-# 🌌 Shop command
-@app.on_message(filters.command(["shop"]))
-async def shop_menu(client, message):
-    user_id = message.from_user.id
-    buttons = []
-
-    for i in range(1, 20, 3):
-        row = []
-        for j in range(i, min(i + 3, 20)):
-            rarity = RARITY_PRICES[j]
-            price = get_discounted_price(rarity["price"])
-            row.append(
-                InlineKeyboardButton(
-                    f"{rarity['name']} ({price}💰)", callback_data=f"rarity_{j}_{user_id}"
-                )
-            )
-        buttons.append(row)
-
-    discount = GLOBAL_DISCOUNT["percent"]
-    banner = f"🎁 **{discount}% OFF** on all rarities!\n" if discount > 0 else ""
-    await message.reply(
-        f"{banner}🌌 **Welcome to the Cosmic Bazaar!**\n\nChoose your rarity to explore ↓",
-        reply_markup=InlineKeyboardMarkup(buttons),
-    )
-
-
-@app.on_callback_query(filters.regex(r"^rarity_(\d+)_(\d+)$"))
-async def show_rarity_shop(client, cq):
-    rarity_id, owner_id = map(int, cq.data.split("_")[1:])
-    clicker = cq.from_user.id
-    if clicker != owner_id:
-        return await cq.answer("❌ Only the shop owner can use these buttons!", show_alert=True)
-
-    rarity_name = RARITY_PRICES[rarity_id]["name"]
-    characters = await collection.find({"rarity": rarity_name}).to_list(length=None)
-    if not characters:
-        return await cq.answer("🚫 No heroes found for this rarity!", show_alert=True)
-
-    sample = random.sample(characters, min(5, len(characters)))
-    user_shop_data[owner_id] = {"rarity": rarity_id, "characters": sample, "index": 0}
-    await send_character_card(cq.message, owner_id, 0)
-    await cq.answer()
-
-
-async def send_character_card(message, user_id, index):
-    data = user_shop_data[user_id]
-    chars = data["characters"]
-    index %= len(chars)
-    character = chars[index]
-    rarity_id = data["rarity"]
-    price = get_discounted_price(RARITY_PRICES[rarity_id]["price"])
-
-    caption = (
-        f"🌟 **{character['name']}**\n"
-        f"🏰 Realm: {character['anime']}\n"
-        f"💎 Rarity: {character['rarity']}\n"
-        f"💰 Price: {price} Star Coins\n"
-        f"🆔 ID: {character['id']}\n\n✨ Add this hero to your collection!"
-    )
-
-    kb = [
-        [
-            InlineKeyboardButton("⬅️ Prev", callback_data=f"shop_prev_{user_id}"),
-            InlineKeyboardButton("💫 Claim", callback_data=f"buyshop_{index}_{user_id}"),
-            InlineKeyboardButton("➡️ Next", callback_data=f"shop_next_{user_id}"),
-        ],
-        [
-            InlineKeyboardButton("🔄 Refresh (5000💰)", callback_data=f"shop_refresh_{user_id}"),
-            InlineKeyboardButton("🏠 Back", callback_data=f"shop_back_{user_id}"),
-        ],
-    ]
+    args = message.text.split()
+    if len(args) < 3:
+        await message.reply("Usage: /discount <percent> <duration>\nExample: /discount 30 1d or /discount 25 12h")
+        return
 
     try:
-        await message.edit_media(
-            InputMediaPhoto(character["img_url"], caption=caption),
-            reply_markup=InlineKeyboardMarkup(kb),
-        )
-    except Exception:
-        await message.reply_photo(character["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(kb))
+        percent = int(args[1])
+    except ValueError:
+        return await message.reply("❌ Invalid percent value!")
 
-    user_shop_data[user_id]["index"] = index
+    duration = args[2].lower()
+    if duration.endswith("h"):
+        hours = int(duration[:-1])
+        expires = datetime.utcnow() + timedelta(hours=hours)
+    elif duration.endswith("d"):
+        days = int(duration[:-1])
+        expires = datetime.utcnow() + timedelta(days=days)
+    else:
+        return await message.reply("❌ Duration must end with 'h' or 'd' (e.g. 2h, 1d).")
 
+    await discounts_collection.delete_many({})
+    await discounts_collection.insert_one({"percent": percent, "expires_at": expires})
 
-@app.on_callback_query(filters.regex(r"^shop_next_(\d+)$"))
-async def shop_next(client, cq):
-    owner_id = int(cq.data.split("_")[2])
-    if cq.from_user.id != owner_id:
-        return await cq.answer("❌ Not your shop!", show_alert=True)
-    data = user_shop_data.get(owner_id)
-    if not data:
-        return await cq.answer("⚠️ Please open the shop again!", show_alert=True)
-    await send_character_card(cq.message, owner_id, data["index"] + 1)
-    await cq.answer()
+    await message.reply(f"✅ Discount of {percent}% set for {duration} successfully!")
 
+# /shop
+@app.on_message(filters.command(["shop", "hshop", "hshopmenu"]))
+async def shop_menu(client, message):
+    keyboard = [[InlineKeyboardButton(r, callback_data=f"rarity_{r}")] for r in RARITY_PRICE.keys()]
+    await message.reply("🌟 **Choose a rarity to browse the Bazaar!**", reply_markup=InlineKeyboardMarkup(keyboard))
 
-@app.on_callback_query(filters.regex(r"^shop_prev_(\d+)$"))
-async def shop_prev(client, cq):
-    owner_id = int(cq.data.split("_")[2])
-    if cq.from_user.id != owner_id:
-        return await cq.answer("❌ Not your shop!", show_alert=True)
-    data = user_shop_data.get(owner_id)
-    if not data:
-        return await cq.answer("⚠️ Please open the shop again!", show_alert=True)
-    await send_character_card(cq.message, owner_id, data["index"] - 1)
-    await cq.answer()
+# Rarity selection
+@app.on_callback_query(filters.regex(r"^rarity_"))
+async def show_rarity_list(client, callback_query):
+    rarity = callback_query.data.split("_", 1)[1]
+    user_id = callback_query.from_user.id
 
+    characters_cursor = collection.find({"rarity": rarity})
+    characters = await characters_cursor.to_list(length=None)
+    if not characters:
+        return await callback_query.answer("No characters found in this rarity!", show_alert=True)
 
-@app.on_callback_query(filters.regex(r"^shop_refresh_(\d+)$"))
-async def shop_refresh(client, cq):
-    owner_id = int(cq.data.split("_")[2])
-    if cq.from_user.id != owner_id:
-        return await cq.answer("❌ Not your shop!", show_alert=True)
+    random.shuffle(characters)
+    user_shop_state[user_id] = {
+        "rarity": rarity,
+        "index": 0,
+        "characters": characters[:5]
+    }
 
-    now = time.time()
-    if now - refresh_cooldown.get(owner_id, 0) < 30:
-        remain = int(30 - (now - refresh_cooldown[owner_id]))
-        return await cq.answer(f"⏳ Wait {remain}s before refreshing!", show_alert=True)
+    await show_character(client, callback_query.message, user_id)
 
-    user = await user_collection.find_one({"id": owner_id})
+async def show_character(client, msg, user_id):
+    data = user_shop_state[user_id]
+    chars = data["characters"]
+    index = data["index"]
+    char = chars[index]
+
+    price = RARITY_PRICE.get(char["rarity"], 1000)
+    discount = await get_active_discount()
+    discounted_price = int(price * (100 - discount) / 100)
+
+    caption = (
+        f"🌌 **{char['name']}**\n"
+        f"🏯 **Realm:** {char['anime']}\n"
+        f"⭐ **Rarity:** {char['rarity']}\n"
+        f"💰 **Price:** {discounted_price} Star Coins ({discount}% off!)\n"
+        f"🆔 ID: `{char['id']}`"
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🪄 Claim", callback_data=f"claim_{index}"),
+            InlineKeyboardButton("➡️ Next", callback_data="next_char"),
+        ],
+        [InlineKeyboardButton("🔄 Refresh (5000💫)", callback_data="refresh_chars")]
+    ]
+
+    if is_video(char["img_url"]):
+        await msg.reply_video(video=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await msg.reply_photo(photo=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+
+@app.on_callback_query(filters.regex("^next_char$"))
+async def next_character(client, callback_query):
+    user_id = callback_query.from_user.id
+    if user_id not in user_shop_state:
+        return await callback_query.answer("Start from /shop again!", show_alert=True)
+
+    state = user_shop_state[user_id]
+    state["index"] += 1
+    if state["index"] >= len(state["characters"]):
+        return await callback_query.answer("No more heroes in this batch! Try refresh.", show_alert=True)
+
+    await show_character(client, callback_query.message, user_id)
+    await callback_query.answer()
+
+@app.on_callback_query(filters.regex("^refresh_chars$"))
+async def refresh_characters(client, callback_query):
+    user_id = callback_query.from_user.id
+    user = await user_collection.find_one({"id": user_id})
     if not user:
-        return await cq.answer("🚫 You are not registered!", show_alert=True)
-    if user.get("balance", 0) < 5000:
-        return await cq.answer("❌ Not enough coins to refresh!", show_alert=True)
+        return await callback_query.answer("Register first to use the shop!", show_alert=True)
 
-    await cq.message.edit_caption("✨ Refreshing your shop...")
-    await asyncio.sleep(2.5)
-
-    await user_collection.update_one({"id": owner_id}, {"$inc": {"balance": -5000}})
-    rarity_id = user_shop_data[owner_id]["rarity"]
-    rarity_name = RARITY_PRICES[rarity_id]["name"]
-    characters = await collection.find({"rarity": rarity_name}).to_list(length=None)
-    sample = random.sample(characters, min(5, len(characters)))
-    user_shop_data[owner_id] = {"rarity": rarity_id, "characters": sample, "index": 0}
-    refresh_cooldown[owner_id] = now
-
-    await send_character_card(cq.message, owner_id, 0)
-    await cq.answer("🔄 Refreshed! 5000 coins deducted.", show_alert=True)
-
-
-@app.on_callback_query(filters.regex(r"^shop_back_(\d+)$"))
-async def shop_back(client, cq):
-    owner_id = int(cq.data.split("_")[2])
-    if cq.from_user.id != owner_id:
-        return await cq.answer("❌ Not your shop!", show_alert=True)
-    await shop_menu(client, cq.message)
-    await cq.answer()
-
-
-@app.on_callback_query(filters.regex(r"^buyshop_(\d+)_(\d+)$"))
-async def buyshop(client, cq):
-    index, owner_id = map(int, cq.data.split("_")[1:])
-    if cq.from_user.id != owner_id:
-        return await cq.answer("❌ Not your shop!", show_alert=True)
-
-    user = await user_collection.find_one({"id": owner_id})
-    if not user:
-        return await cq.answer("🚫 You must register first!", show_alert=True)
-
-    data = user_shop_data.get(owner_id)
-    if not data:
-        return await cq.answer("⚠️ Please open the shop again!", show_alert=True)
-
-    rarity_id = data["rarity"]
-    price = get_discounted_price(RARITY_PRICES[rarity_id]["price"])
-    character = data["characters"][index]
     balance = user.get("balance", 0)
-    if balance < price:
-        return await cq.answer(f"💰 Need {price - balance} more coins!", show_alert=True)
+    if balance < 5000:
+        return await callback_query.answer("Not enough coins to refresh (Need 5000)!", show_alert=True)
+
+    await user_collection.update_one({"id": user_id}, {"$inc": {"balance": -5000}})
+
+    rarity = user_shop_state[user_id]["rarity"]
+    chars_cursor = collection.find({"rarity": rarity})
+    all_chars = await chars_cursor.to_list(length=None)
+    random.shuffle(all_chars)
+    user_shop_state[user_id]["characters"] = all_chars[:5]
+    user_shop_state[user_id]["index"] = 0
+
+    await show_character(client, callback_query.message, user_id)
+    await callback_query.answer("✨ Refreshed heroes!", show_alert=True)
+
+@app.on_callback_query(filters.regex(r"^claim_\d+$"))
+async def claim_character(client, callback_query):
+    user_id = callback_query.from_user.id
+    index = int(callback_query.data.split("_")[1])
+    state = user_shop_state.get(user_id)
+    if not state:
+        return await callback_query.answer("Please open the shop again!", show_alert=True)
+
+    char = state["characters"][index]
+    user = await user_collection.find_one({"id": user_id})
+    if not user:
+        return await callback_query.answer("You must register first!", show_alert=True)
+
+    price = RARITY_PRICE.get(char["rarity"], 1000)
+    discount = await get_active_discount()
+    discounted_price = int(price * (100 - discount) / 100)
+    if user.get("balance", 0) < discounted_price:
+        return await callback_query.answer("Not enough Star Coins!", show_alert=True)
 
     await user_collection.update_one(
-        {"id": owner_id},
+        {"id": user_id},
         {
-            "$inc": {"balance": -price},
+            "$inc": {"balance": -discounted_price},
             "$push": {"characters": {
                 "_id": ObjectId(),
-                "img_url": character["img_url"],
-                "name": character["name"],
-                "anime": character["anime"],
-                "rarity": character["rarity"],
-                "id": character["id"],
-            }},
-        },
+                "img_url": char["img_url"],
+                "name": char["name"],
+                "anime": char["anime"],
+                "rarity": char["rarity"],
+                "id": char["id"]
+            }}
+        }
     )
-    await cq.answer("🎉 Hero successfully claimed!", show_alert=True)
-
+    await callback_query.answer(f"🎉 You claimed {char['name']}!", show_alert=True)
 
 # ⚙️ OWNER ONLY: Set global discount
 @app.on_message(filters.command("discount"))
