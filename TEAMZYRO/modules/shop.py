@@ -1,204 +1,265 @@
-import urllib.request
-import uuid
-import requests
 import random
-import html
 import logging
-from pymongo import ReturnDocument
-from typing import List
-from bson import ObjectId
-from datetime import datetime, timedelta
 import asyncio
+from datetime import datetime, timedelta
+from bson import ObjectId
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaVideo
 from motor.motor_asyncio import AsyncIOMotorClient
-
 from TEAMZYRO import *
 
-shops_collection = db["shops"]
+# Global data
+user_shop_state = {}
 
-user_data = {}
+# Permanent default discount (12%)
+DEFAULT_DISCOUNT = 12
 
-async def get_user_data(user_id):
-    return await user_collection.find_one({"id": user_id})
+# Rarity price map
+RARITY_PRICE = {
+    "⚪️ Common": 1000,
+    "🟣 Rare": 5000,
+    "🟡 Legendary": 15000,
+    "🟢 Medium": 30000,
+    "💮 Special Edition": 25000,
+    "🔮 Limited Edition": 40000,
+    "💸 Premium Edition": 30000,
+    "🌤 Summer": 35000,
+    "🎐 Celestial": 45000,
+    "❄️ Winter": 20000,
+    "💝 Valentine": 18000,
+    "🎃 Halloween": 16000,
+    "🎄 Christmas Special": 22000,
+    "🪐 Omniversal": 80000,
+    "🎭 Cosplay Master 🎭": 70000,
+    "🧧 Events": 25000,
+    "🍑 Echhi": 30000,
+    "🎗️ AMV Edition": 27000,
+    "🌟 Luminous": 50000,
+}
 
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    handlers=[logging.FileHandler("log.txt"), logging.StreamHandler()],
-    level=logging.INFO,
-)
-LOGGER = logging.getLogger(__name__)
+async def get_active_discount():
+    discount = await discounts_collection.find_one({})
+    if discount and discount["expires_at"] > datetime.utcnow():
+        return discount["percent"]
+    return DEFAULT_DISCOUNT
 
-@app.on_message(filters.command(["shop", "hshopmenu", "hshop"]))
-async def show_shop(client, message):
-    user_id = message.from_user.id
-    message_id = message.id
+def is_video(url):
+    return any(url.lower().endswith(ext) for ext in [".mp4", ".mov", ".webm"])
 
-    characters_cursor = shops_collection.find()
-    characters = await characters_cursor.to_list(length=None)
-
-    if not characters:
-        await message.reply("🌌 The Cosmic Bazaar is empty! No legendary heroes are available yet.")
+# /discount <percent> <duration>
+@app.on_message(filters.command("discount"))
+async def set_discount(client, message):
+    if message.from_user.id not in TEAMZYRO:
+        await message.reply("🚫 Only owners can set discounts.")
         return
 
-    current_index = 0
-    character = characters[current_index]
-
-    caption_message = (
-        f"🌟 **Welcome to the Cosmic Bazaar!** 🌟\n\n"
-        f"**Hero:** {character['name']}\n"
-        f"**Realm:** {character['anime']}\n"
-        f"**Legend Tier:** {character['rarity']}\n"
-        f"**Cost:** {character['price']} Star Coins\n"
-        f"**ID:** {character['id']}\n\n"
-        f"✨ Summon this epic hero to join your cosmic collection! ✨"
-    )
-
-    keyboard = [
-        [InlineKeyboardButton("Claim Hero!", callback_data=f"buy_{current_index}"),
-         InlineKeyboardButton("Next Hero", callback_data="next")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await message.reply_photo(
-        photo=character['img_url'],
-        caption=caption_message,
-        reply_markup=reply_markup
-    )
-
-    user_data[user_id] = {"current_index": current_index, "shop_message_id": message_id}
-
-@app.on_callback_query(filters.regex(r"^buy_\d+$"))
-async def buy_character(client, callback_query):
-    user_id = callback_query.from_user.id
-    current_index = int(callback_query.data.split("_")[1])
-
-    characters_cursor = shops_collection.find()
-    characters = await characters_cursor.to_list(length=None)
-
-    if current_index >= len(characters):
-        await callback_query.answer("🚫 This hero has vanished from the Cosmic Bazaar!", show_alert=True)
+    args = message.text.split()
+    if len(args) < 3:
+        await message.reply("Usage: /discount <percent> <duration>\nExample: /discount 30 1d or /discount 25 12h")
         return
-
-    character = characters[current_index]
-
-    user = await user_collection.find_one({"id": user_id})
-    if not user:
-        await callback_query.answer("🚫 Traveler, you must register in the Cosmos to claim heroes!", show_alert=True)
-        return
-
-    price = character['price']
-    current_balance = user.get("balance", 0)
-
-    if current_balance < price:
-        await callback_query.answer(
-            f"🌠 You need {price - current_balance} more Star Coins to claim this hero!",
-            show_alert=True
-        )
-        return
-
-    new_balance = current_balance - price
-    character_data = {
-        "_id": ObjectId(),
-        "img_url": character["img_url"],
-        "name": character["name"],
-        "anime": character["anime"],
-        "rarity": character["rarity"],
-        "id": character["id"]
-    }
-
-    user["characters"].append(character_data)
-    await user_collection.update_one(
-        {"id": user_id},
-        {"$set": {"balance": new_balance, "characters": user["characters"]}}
-    )
-
-    await callback_query.answer("🎉 Hero claimed! Your new legend joins the Cosmos!")
-
-@app.on_callback_query(filters.regex("^next$"))
-async def next_item(client, callback_query):
-    user_id = callback_query.from_user.id
-
-    user_state = user_data.get(user_id, {})
-    current_index = user_state.get("current_index", 0)
-
-    characters_cursor = shops_collection.find()
-    characters = await characters_cursor.to_list(length=None)
-
-    if not characters:
-        await callback_query.answer("🌌 No more heroes remain in the Cosmic Bazaar!", show_alert=True)
-        return
-
-    next_index = (current_index + 1) % len(characters)
-    character = characters[next_index]
-
-    caption_message = (
-        f"🌟 **Discover the Cosmic Bazaar!** 🌟\n\n"
-        f"**Hero:** {character['name']}\n"
-        f"**Realm:** {character['anime']}\n"
-        f"**Legend Tier:** {character['rarity']}\n"
-        f"**Cost:** {character['price']} Star Coins\n"
-        f"**ID:** {character['id']}\n\n"
-        f"✨ Add this legendary hero to your cosmic collection! ✨"
-    )
-
-    keyboard = [
-        [InlineKeyboardButton("Claim Hero!", callback_data=f"buy_{next_index}"),
-         InlineKeyboardButton("Next Hero", callback_data="next")]
-    ]
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await callback_query.message.edit_media(
-        media=InputMediaPhoto(media=character['img_url'], caption=caption_message),
-        reply_markup=reply_markup
-    )
-
-    user_data[user_id]["current_index"] = next_index
-    await callback_query.answer()
-
-@app.on_message(filters.command("addshop"))
-@require_power("add_character")
-async def add_to_shop(client, message):
-    args = message.text.split()[1:]
-
-    if len(args) != 2:
-        await message.reply("🌌 Usage: /addshop <id> <price> to add a hero to the Cosmic Bazaar!")
-        return
-
-    character_id, price = args
 
     try:
-        price = int(price)
+        percent = int(args[1])
     except ValueError:
-        await message.reply("🚫 The price must be a valid number of Star Coins!")
-        return
+        return await message.reply("❌ Invalid percent value!")
 
-    character = await collection.find_one({"id": character_id})
-    if not character:
-        await message.reply("🚫 This hero doesn't exist in the Cosmos!")
-        return
+    duration = args[2].lower()
+    if duration.endswith("h"):
+        hours = int(duration[:-1])
+        expires = datetime.utcnow() + timedelta(hours=hours)
+    elif duration.endswith("d"):
+        days = int(duration[:-1])
+        expires = datetime.utcnow() + timedelta(days=days)
+    else:
+        return await message.reply("❌ Duration must end with 'h' or 'd' (e.g. 2h, 1d).")
 
-    character["price"] = price
-    await shops_collection.insert_one(character)
+    await discounts_collection.delete_many({})
+    await discounts_collection.insert_one({"percent": percent, "expires_at": expires})
 
-    await message.reply(f"🎉 {character['name']} has been added to the Cosmic Bazaar for {price} Star Coins!")
+    await message.reply(f"✅ Discount of {percent}% set for {duration} successfully!")
 
-@app.on_message(filters.command("removeshop"))
-@require_power("remove_character")
-async def remove_from_shop(client, message):
-    args = message.text.split()[1:]
+# /shop
+@app.on_message(filters.command(["shop", "hshop", "hshopmenu"]))
+async def shop_menu(client, message):
+    keyboard = [[InlineKeyboardButton(r, callback_data=f"rarity_{r}")] for r in RARITY_PRICE.keys()]
+    await message.reply("🌟 **Choose a rarity to browse the Bazaar!**", reply_markup=InlineKeyboardMarkup(keyboard))
 
-    if len(args) != 1:
-        await message.reply("🌌 Usage: /removeshop <id> to remove a hero from the Cosmic Bazaar!")
-        return
+# Rarity selection
+@app.on_callback_query(filters.regex(r"^rarity_"))
+async def show_rarity_list(client, callback_query):
+    rarity = callback_query.data.split("_", 1)[1]
+    user_id = callback_query.from_user.id
 
-    character_id = args[0]
+    characters_cursor = collection.find({"rarity": rarity})
+    characters = await characters_cursor.to_list(length=None)
+    if not characters:
+        return await callback_query.answer("No characters found in this rarity!", show_alert=True)
 
-    character = await shops_collection.find_one({"id": character_id})
-    if not character:
-        await message.reply("🚫 This hero is not in the Cosmic Bazaar!")
-        return
+    random.shuffle(characters)
+    user_shop_state[user_id] = {
+        "rarity": rarity,
+        "index": 0,
+        "characters": characters[:5]
+    }
 
-    await shops_collection.delete_one({"id": character_id})
-    await message.reply(f"🌠 {character['name']} has been removed from the Cosmic Bazaar!")
+    await show_character(client, callback_query.message, user_id)
+
+async def show_character(client, msg, user_id):
+    data = user_shop_state[user_id]
+    chars = data["characters"]
+    index = data["index"]
+    char = chars[index]
+
+    price = RARITY_PRICE.get(char["rarity"], 1000)
+    discount = await get_active_discount()
+    discounted_price = int(price * (100 - discount) / 100)
+
+    caption = (
+        f"🌌 **{char['name']}**\n"
+        f"🏯 **Realm:** {char['anime']}\n"
+        f"⭐ **Rarity:** {char['rarity']}\n"
+        f"💰 **Price:** {discounted_price} Star Coins ({discount}% off!)\n"
+        f"🆔 ID: `{char['id']}`"
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🪄 Claim", callback_data=f"claim_{index}"),
+            InlineKeyboardButton("➡️ Next", callback_data="next_char"),
+        ],
+        [InlineKeyboardButton("🔄 Refresh (5000💫)", callback_data="refresh_chars")]
+    ]
+
+    if is_video(char["img_url"]):
+        await msg.reply_video(video=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await msg.reply_photo(photo=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+
+@app.on_callback_query(filters.regex("^next_char$"))
+async def next_character(client, callback_query):
+    user_id = callback_query.from_user.id
+    if user_id not in user_shop_state:
+        return await callback_query.answer("Start from /shop again!", show_alert=True)
+
+    state = user_shop_state[user_id]
+    state["index"] += 1
+    if state["index"] >= len(state["characters"]):
+        return await callback_query.answer("No more heroes in this batch! Try refresh.", show_alert=True)
+
+    await show_character(client, callback_query.message, user_id)
+    await callback_query.answer()
+
+@app.on_callback_query(filters.regex("^refresh_chars$"))
+async def refresh_characters(client, callback_query):
+    user_id = callback_query.from_user.id
+    user = await user_collection.find_one({"id": user_id})
+    if not user:
+        return await callback_query.answer("Register first to use the shop!", show_alert=True)
+
+    balance = user.get("balance", 0)
+    if balance < 5000:
+        return await callback_query.answer("Not enough coins to refresh (Need 5000)!", show_alert=True)
+
+    await user_collection.update_one({"id": user_id}, {"$inc": {"balance": -5000}})
+
+    rarity = user_shop_state[user_id]["rarity"]
+    chars_cursor = collection.find({"rarity": rarity})
+    all_chars = await chars_cursor.to_list(length=None)
+    random.shuffle(all_chars)
+    user_shop_state[user_id]["characters"] = all_chars[:5]
+    user_shop_state[user_id]["index"] = 0
+
+    await show_character(client, callback_query.message, user_id)
+    await callback_query.answer("✨ Refreshed heroes!", show_alert=True)
+
+@app.on_callback_query(filters.regex(r"^claim_\d+$"))
+async def claim_character(client, callback_query):
+    user_id = callback_query.from_user.id
+    index = int(callback_query.data.split("_")[1])
+    state = user_shop_state.get(user_id)
+    if not state:
+        return await callback_query.answer("Please open the shop again!", show_alert=True)
+
+    char = state["characters"][index]
+    user = await user_collection.find_one({"id": user_id})
+    if not user:
+        return await callback_query.answer("You must register first!", show_alert=True)
+
+    price = RARITY_PRICE.get(char["rarity"], 1000)
+    discount = await get_active_discount()
+    discounted_price = int(price * (100 - discount) / 100)
+    if user.get("balance", 0) < discounted_price:
+        return await callback_query.answer("Not enough Star Coins!", show_alert=True)
+
+    await user_collection.update_one(
+        {"id": user_id},
+        {
+            "$inc": {"balance": -discounted_price},
+            "$push": {"characters": {
+                "_id": ObjectId(),
+                "img_url": char["img_url"],
+                "name": char["name"],
+                "anime": char["anime"],
+                "rarity": char["rarity"],
+                "id": char["id"]
+            }}
+        }
+    )
+    await callback_query.answer(f"🎉 You claimed {char['name']}!", show_alert=True)
+
+# ⚙️ OWNER ONLY: Set global discount
+@app.on_message(filters.command("discount"))
+async def set_discount(client, message):
+    if message.from_user.id != TEAMZYRO:
+        return await message.reply("🚫 Only the owner can set discounts!")
+
+    args = message.text.split()
+    if len(args) < 2:
+        return await message.reply("⚙️ Usage: /discount <percent> [minutes|Xd]\nExample: /discount 40 1d")
+
+    try:
+        percent = int(args[1])
+        if not (0 <= percent <= 100):
+            raise ValueError
+    except ValueError:
+        return await message.reply("⚠️ Provide a valid percent (0–100).")
+
+    duration = 60
+    if len(args) == 3:
+        t = args[2].lower()
+        if t.endswith("d"):
+            days = int(t[:-1])
+            duration = days * 24 * 60
+        else:
+            duration = int(t)
+
+    GLOBAL_DISCOUNT["percent"] = percent
+    GLOBAL_DISCOUNT["expires_at"] = datetime.utcnow() + timedelta(minutes=duration)
+    asyncio.create_task(discount_watcher())
+
+    await message.reply(
+        f"🎁 Discount set to **{percent}%** for **{duration} minutes**.\n"
+        f"After expiry → reset to **{GLOBAL_DISCOUNT['permanent']}%**."
+    )
+
+
+@app.on_message(filters.command("discountstatus"))
+async def discount_status(client, message):
+    percent = GLOBAL_DISCOUNT["percent"]
+    expires = GLOBAL_DISCOUNT["expires_at"]
+    if expires:
+        left = expires - datetime.utcnow()
+        if left.total_seconds() > 0:
+            m = int(left.total_seconds() // 60)
+            h, m = divmod(m, 60)
+            d, h = divmod(h, 24)
+            time_left = f"{d}d {h}h {m}m" if d else f"{h}h {m}m"
+        else:
+            time_left = "Expired"
+    else:
+        time_left = "♾️ Permanent"
+
+    await message.reply(
+        f"🎟️ **Discount Status**\n\n💰 Current: **{percent}%**\n🕒 Time left: **{time_left}**\n"
+        f"🏷️ Default: **{GLOBAL_DISCOUNT['permanent']}%**"
+    )
