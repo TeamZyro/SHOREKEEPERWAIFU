@@ -163,7 +163,7 @@ async def show_character(client, msg, user_id):
             await client.edit_message_media(
                 chat_id=msg.chat.id,
                 message_id=msg.id,
-                media=InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode="markdown"),
+                media=InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML"),
                 reply_markup=markup
             )
 
