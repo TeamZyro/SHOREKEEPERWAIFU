@@ -8,6 +8,8 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMedi
 from motor.motor_asyncio import AsyncIOMotorClient
 from TEAMZYRO import *
 
+TEAMZYRO = 7078181502
+
 # Global data
 user_shop_state = {}
 
