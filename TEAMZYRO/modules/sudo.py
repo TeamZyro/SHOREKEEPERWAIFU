@@ -1,265 +1,208 @@
-import random
-import logging
-import asyncio
-from datetime import datetime, timedelta
-from bson import ObjectId
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaVideo
-from motor.motor_asyncio import AsyncIOMotorClient
-from TEAMZYRO import *
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from pymongo import MongoClient
 
-# Global data
-user_shop_state = {}
+from TEAMZYRO import OWNER_ID
 
-# Permanent default discount (12%)
-DEFAULT_DISCOUNT = 12
+from TEAMZYRO import app, db, require_power
+from functools import wraps
 
-# Rarity price map
-RARITY_PRICE = {
-    "⚪️ Common": 1000,
-    "🟣 Rare": 5000,
-    "🟡 Legendary": 15000,
-    "🟢 Medium": 30000,
-    "💮 Special Edition": 25000,
-    "🔮 Limited Edition": 40000,
-    "💸 Premium Edition": 30000,
-    "🌤 Summer": 35000,
-    "🎐 Celestial": 45000,
-    "❄️ Winter": 20000,
-    "💝 Valentine": 18000,
-    "🎃 Halloween": 16000,
-    "🎄 Christmas Special": 22000,
-    "🪐 Omniversal": 80000,
-    "🎭 Cosplay Master 🎭": 70000,
-    "🧧 Events": 25000,
-    "🍑 Echhi": 30000,
-    "🎗️ AMV Edition": 27000,
-    "🌟 Luminous": 50000,
-}
+sudo_users = db['sudo_users']
 
-async def get_active_discount():
-    discount = await discounts_collection.find_one({})
-    if discount and discount["expires_at"] > datetime.utcnow():
-        return discount["percent"]
-    return DEFAULT_DISCOUNT
+# Predefined powers
+ALL_POWERS = [
+    "add_character",  # Adds a new character
+    "delete_character",  # Deletes a character
+    "update_character",  # Updates an existing character
+    "approve_request",  # Approves a request
+    "approve_inventory_request",  # Approves an inventory request
+    "VIP"
+]
 
-def is_video(url):
-    return any(url.lower().endswith(ext) for ext in [".mp4", ".mov", ".webm"])
+# Command: /addsudo
+@app.on_message(filters.command("saddsudo") & filters.reply)
+@require_power("VIP")
+async def add_sudo(client, message):
+    
+    replied_user_id = message.reply_to_message.from_user.id
 
-# /discount <percent> <duration>
-@app.on_message(filters.command("discount"))
-async def set_discount(client, message):
-    if message.from_user.id not in TEAMZYRO:
-        await message.reply("🚫 Only owners can set discounts.")
+    # Check if the user is already a sudo
+    existing_user = await sudo_users.find_one({"_id": replied_user_id})
+    if existing_user:
+        await message.reply_text(f"User `{replied_user_id}` is already a sudo.")
         return
 
-    args = message.text.split()
-    if len(args) < 3:
-        await message.reply("Usage: /discount <percent> <duration>\nExample: /discount 30 1d or /discount 25 12h")
+    # Add the user as a sudo
+    sudo_users.update_one(
+        {"_id": replied_user_id},
+        {"$set": {"powers": {"add_character": True}}},  # Only giving the 'add_character' power
+        upsert=True
+    )
+    await message.reply_text(f"User `{replied_user_id}` has been added as a sudo with 'add_character' power.")
+
+@app.on_message(filters.command("sremovesudo"))
+@require_power("VIP")
+async def remove_sudo(client, message):
+    # Get user ID from reply or command argument
+    if message.reply_to_message:
+        user_id = message.reply_to_message.from_user.id
+    elif len(message.command) > 1 and message.command[1].isdigit():
+        user_id = int(message.command[1])
+    else:
+        await message.reply_text("❌ Please reply to a user or provide a valid user ID.")
         return
 
-    try:
-        percent = int(args[1])
-    except ValueError:
-        return await message.reply("❌ Invalid percent value!")
+    # Check if the user is a sudo
+    existing_user = await sudo_users.find_one({"_id": user_id})
+    if not existing_user:
+        await message.reply_text(f"⚠️ User `{user_id}` is not a sudo.")
+        return
 
-    duration = args[2].lower()
-    if duration.endswith("h"):
-        hours = int(duration[:-1])
-        expires = datetime.utcnow() + timedelta(hours=hours)
-    elif duration.endswith("d"):
-        days = int(duration[:-1])
-        expires = datetime.utcnow() + timedelta(days=days)
-    else:
-        return await message.reply("❌ Duration must end with 'h' or 'd' (e.g. 2h, 1d).")
+    # Remove the user from sudo
+    await sudo_users.delete_one({"_id": user_id})
+    await message.reply_text(f"✅ User [{user_id}](tg://user?id={user_id}) has been removed from sudo.", disable_web_page_preview=True)
 
-    await discounts_collection.delete_many({})
-    await discounts_collection.insert_one({"percent": percent, "expires_at": expires})
 
-    await message.reply(f"✅ Discount of {percent}% set for {duration} successfully!")
+# Command: /editsudo
+@app.on_message(filters.command("seditsudo") & filters.reply)
+@require_power("VIP")
+async def edit_sudo(client, message):
+    
+    replied_user_id = message.reply_to_message.from_user.id
+    user_data = await sudo_users.find_one({"_id": replied_user_id})
 
-# /shop
-@app.on_message(filters.command(["shop", "hshop", "hshopmenu"]))
-async def shop_menu(client, message):
-    keyboard = [[InlineKeyboardButton(r, callback_data=f"rarity_{r}")] for r in RARITY_PRICE.keys()]
-    await message.reply("🌟 **Choose a rarity to browse the Bazaar!**", reply_markup=InlineKeyboardMarkup(keyboard))
+    if not user_data:
+        await message.reply_text("This user is not a sudo.")
+        return
 
-# Rarity selection
-@app.on_callback_query(filters.regex(r"^rarity_"))
-async def show_rarity_list(client, callback_query):
-    rarity = callback_query.data.split("_", 1)[1]
-    user_id = callback_query.from_user.id
+    # Generate inline keyboard with "Closed" button
+    buttons = []
+    powers = user_data.get("powers", {})
+    for i, power in enumerate(ALL_POWERS):
+        current_status = "Yes" if powers.get(power, False) else "No"
+        buttons.append([
+            InlineKeyboardButton(f"{power}", callback_data=f"noop"),
+            InlineKeyboardButton(f"{current_status}", callback_data=f"toggle_{replied_user_id}_{power}")
+        ])
+    
+    # Add the "Closed" button to close the keyboard
+    buttons.append([InlineKeyboardButton("Closed", callback_data="close_keyboard")])
 
-    characters_cursor = collection.find({"rarity": rarity})
-    characters = await characters_cursor.to_list(length=None)
-    if not characters:
-        return await callback_query.answer("No characters found in this rarity!", show_alert=True)
+    keyboard = InlineKeyboardMarkup(buttons)
 
-    random.shuffle(characters)
-    user_shop_state[user_id] = {
-        "rarity": rarity,
-        "index": 0,
-        "characters": characters[:5]
-    }
+    await message.reply_text(f"Edit powers for `{replied_user_id}`:", reply_markup=keyboard)
 
-    await show_character(client, callback_query.message, user_id)
+# Callback handler for toggling powers
+@app.on_callback_query(filters.regex(r"^toggle_(\d+)_(\w+)$"))
+@require_power("VIP")
+async def toggle_power(client, callback_query):
 
-async def show_character(client, msg, user_id):
-    data = user_shop_state[user_id]
-    chars = data["characters"]
-    index = data["index"]
-    char = chars[index]
+    user_id = int(callback_query.matches[0].group(1))
+    power = callback_query.matches[0].group(2)
 
-    price = RARITY_PRICE.get(char["rarity"], 1000)
-    discount = await get_active_discount()
-    discounted_price = int(price * (100 - discount) / 100)
+    user_data = await sudo_users.find_one({"_id": user_id})
+    if not user_data:
+        await callback_query.answer("User not found.", show_alert=True)
+        return
 
-    caption = (
-        f"🌌 **{char['name']}**\n"
-        f"🏯 **Realm:** {char['anime']}\n"
-        f"⭐ **Rarity:** {char['rarity']}\n"
-        f"💰 **Price:** {discounted_price} Star Coins ({discount}% off!)\n"
-        f"🆔 ID: `{char['id']}`"
+    # Toggle the power
+    current_status = user_data.get("powers", {}).get(power, False)
+    new_status = not current_status
+    await sudo_users.update_one(
+        {"_id": user_id},
+        {"$set": {f"powers.{power}": new_status}}
     )
 
-    keyboard = [
-        [
-            InlineKeyboardButton("🪄 Claim", callback_data=f"claim_{index}"),
-            InlineKeyboardButton("➡️ Next", callback_data="next_char"),
-        ],
-        [InlineKeyboardButton("🔄 Refresh (5000💫)", callback_data="refresh_chars")]
-    ]
+    # Notify the user and update the keyboard
+    await callback_query.answer(f"Power '{power}' updated to {'Yes' if new_status else 'No'}.", show_alert=True)
 
-    if is_video(char["img_url"]):
-        await msg.reply_video(video=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
-    else:
-        await msg.reply_photo(photo=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+    user_data = await sudo_users.find_one({"_id": user_id})  # Fetch updated user data
+    powers = user_data.get("powers", {})
+    buttons = []
+    for p in ALL_POWERS:
+        status = "Yes" if powers.get(p, False) else "No"
+        buttons.append([
+            InlineKeyboardButton(f"{p}", callback_data=f"noop"),
+            InlineKeyboardButton(f"{status}", callback_data=f"toggle_{user_id}_{p}")
+        ])
+    
+    # Add the "Closed" button again after toggling
+    buttons.append([InlineKeyboardButton("Closed", callback_data="close_keyboard")])
 
-@app.on_callback_query(filters.regex("^next_char$"))
-async def next_character(client, callback_query):
-    user_id = callback_query.from_user.id
-    if user_id not in user_shop_state:
-        return await callback_query.answer("Start from /shop again!", show_alert=True)
+    keyboard = InlineKeyboardMarkup(buttons)
+    await callback_query.message.edit_reply_markup(reply_markup=keyboard)
 
-    state = user_shop_state[user_id]
-    state["index"] += 1
-    if state["index"] >= len(state["characters"]):
-        return await callback_query.answer("No more heroes in this batch! Try refresh.", show_alert=True)
+# Callback handler for closing the keyboard
+@app.on_callback_query(filters.regex(r"^close_keyboard$"))
+@require_power("VIP")
+async def close_keyboard(client, callback_query):
+    await callback_query.message.edit_reply_markup(reply_markup=None)
+    await callback_query.answer("Keyboard closed.", show_alert=True)
 
-    await show_character(client, callback_query.message, user_id)
-    await callback_query.answer()
+def require_power(required_power):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(client, message, *args, **kwargs):
+            # Check if the message is a callback query or a regular message
+            if isinstance(message, CallbackQuery):
+                # This is a callback query, not a regular message
+                user_id = message.from_user.id
+                # If the user is the owner, bypass the power check
+                if user_id == OWNER_ID:
+                    return await func(client, message, *args, **kwargs)
 
-@app.on_callback_query(filters.regex("^refresh_chars$"))
-async def refresh_characters(client, callback_query):
-    user_id = callback_query.from_user.id
-    user = await user_collection.find_one({"id": user_id})
-    if not user:
-        return await callback_query.answer("Register first to use the shop!", show_alert=True)
+                # Otherwise, check if the user has the required power
+                user_data = await sudo_users.find_one({"_id": user_id})
+                if not user_data or not user_data.get("powers", {}).get(required_power, False):
+                    # Use callback_query.answer for callback queries
+                    await message.answer(f"You do not have the `{required_power}` power required to use this button.", show_alert=True)
+                    return
+                return await func(client, message, *args, **kwargs)
 
-    balance = user.get("balance", 0)
-    if balance < 5000:
-        return await callback_query.answer("Not enough coins to refresh (Need 5000)!", show_alert=True)
+            # Regular message handling
+            user_id = message.from_user.id
+            # If the user is the owner, bypass the power check
+            if user_id == OWNER_ID:
+                return await func(client, message, *args, **kwargs)
 
-    await user_collection.update_one({"id": user_id}, {"$inc": {"balance": -5000}})
-
-    rarity = user_shop_state[user_id]["rarity"]
-    chars_cursor = collection.find({"rarity": rarity})
-    all_chars = await chars_cursor.to_list(length=None)
-    random.shuffle(all_chars)
-    user_shop_state[user_id]["characters"] = all_chars[:5]
-    user_shop_state[user_id]["index"] = 0
-
-    await show_character(client, callback_query.message, user_id)
-    await callback_query.answer("✨ Refreshed heroes!", show_alert=True)
-
-@app.on_callback_query(filters.regex(r"^claim_\d+$"))
-async def claim_character(client, callback_query):
-    user_id = callback_query.from_user.id
-    index = int(callback_query.data.split("_")[1])
-    state = user_shop_state.get(user_id)
-    if not state:
-        return await callback_query.answer("Please open the shop again!", show_alert=True)
-
-    char = state["characters"][index]
-    user = await user_collection.find_one({"id": user_id})
-    if not user:
-        return await callback_query.answer("You must register first!", show_alert=True)
-
-    price = RARITY_PRICE.get(char["rarity"], 1000)
-    discount = await get_active_discount()
-    discounted_price = int(price * (100 - discount) / 100)
-    if user.get("balance", 0) < discounted_price:
-        return await callback_query.answer("Not enough Star Coins!", show_alert=True)
-
-    await user_collection.update_one(
-        {"id": user_id},
-        {
-            "$inc": {"balance": -discounted_price},
-            "$push": {"characters": {
-                "_id": ObjectId(),
-                "img_url": char["img_url"],
-                "name": char["name"],
-                "anime": char["anime"],
-                "rarity": char["rarity"],
-                "id": char["id"]
-            }}
-        }
-    )
-    await callback_query.answer(f"🎉 You claimed {char['name']}!", show_alert=True)
-
-# ⚙️ OWNER ONLY: Set global discount
-@app.on_message(filters.command("discount"))
-async def set_discount(client, message):
-    if message.from_user.id != TEAMZYRO:
-        return await message.reply("🚫 Only the owner can set discounts!")
-
-    args = message.text.split()
-    if len(args) < 2:
-        return await message.reply("⚙️ Usage: /discount <percent> [minutes|Xd]\nExample: /discount 40 1d")
-
-    try:
-        percent = int(args[1])
-        if not (0 <= percent <= 100):
-            raise ValueError
-    except ValueError:
-        return await message.reply("⚠️ Provide a valid percent (0–100).")
-
-    duration = 60
-    if len(args) == 3:
-        t = args[2].lower()
-        if t.endswith("d"):
-            days = int(t[:-1])
-            duration = days * 24 * 60
-        else:
-            duration = int(t)
-
-    GLOBAL_DISCOUNT["percent"] = percent
-    GLOBAL_DISCOUNT["expires_at"] = datetime.utcnow() + timedelta(minutes=duration)
-    asyncio.create_task(discount_watcher())
-
-    await message.reply(
-        f"🎁 Discount set to **{percent}%** for **{duration} minutes**.\n"
-        f"After expiry → reset to **{GLOBAL_DISCOUNT['permanent']}%**."
-    )
+            # Otherwise, check if the user has the required power
+            user_data = await sudo_users.find_one({"_id": user_id})
+            if not user_data or not user_data.get("powers", {}).get(required_power, False):
+                # Use message.reply_text for regular messages
+                await message.reply_text(f"You do not have the `{required_power}` power required to use this command.")
+                return
+            return await func(client, message, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
-@app.on_message(filters.command("discountstatus"))
-async def discount_status(client, message):
-    percent = GLOBAL_DISCOUNT["percent"]
-    expires = GLOBAL_DISCOUNT["expires_at"]
-    if expires:
-        left = expires - datetime.utcnow()
-        if left.total_seconds() > 0:
-            m = int(left.total_seconds() // 60)
-            h, m = divmod(m, 60)
-            d, h = divmod(h, 24)
-            time_left = f"{d}d {h}h {m}m" if d else f"{h}h {m}m"
-        else:
-            time_left = "Expired"
-    else:
-        time_left = "♾️ Permanent"
+# Command: /sudolist
+@app.on_message(filters.command("sudolist"))
+async def sudo_list(client, message):
+    if message.from_user.id != OWNER_ID:
+        await message.reply_text("You do not have permission to use this command.")
+        return
 
-    await message.reply(
-        f"🎟️ **Discount Status**\n\n💰 Current: **{percent}%**\n🕒 Time left: **{time_left}**\n"
-        f"🏷️ Default: **{GLOBAL_DISCOUNT['permanent']}%**"
-    )
+    # Fetch all sudo users from the database
+    users = await sudo_users.find().to_list(length=None)
+
+    if not users:
+        await message.reply_text("There are no sudo users.")
+        return
+
+    sudo_list_text = "🛠 **Sudo Users List:**\n\n"
+    for user in users:
+        user_id = user.get("_id")
+        
+        # Fetch user details from Telegram
+        try:
+            user_info = await client.get_users(user_id)
+            first_name = user_info.first_name
+        except:
+            first_name = "Unknown"
+
+        # Show user first name and mention link
+        sudo_list_text += f"➤ [{first_name}](tg://user?id={user_id}) (`{user_id}`)\n"
+
+    await message.reply_text(sudo_list_text, disable_web_page_preview=True)
+            
