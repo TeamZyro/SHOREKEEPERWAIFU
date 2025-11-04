@@ -106,7 +106,6 @@ async def show_rarity_list(client, callback_query):
 
     await show_character(client, callback_query.message, user_id)
 
-
 async def show_character(client, msg, user_id):
     data = user_shop_state[user_id]
     chars = data["characters"]
@@ -134,16 +133,27 @@ async def show_character(client, msg, user_id):
         [InlineKeyboardButton("🔄 Refresh (5000💫)", callback_data="refresh_chars")]
     ]
 
-    media = InputMediaVideo(char["img_url"], caption=caption) if is_video(char["img_url"]) else InputMediaPhoto(char["img_url"], caption=caption)
+    media_type = "video" if is_video(char["img_url"]) else "photo"
+    markup = InlineKeyboardMarkup(keyboard)
 
     try:
-        await msg.edit_media(media=media, reply_markup=InlineKeyboardMarkup(keyboard))
-    except Exception:
-        # If first time (no message to edit), send fresh message
-        if is_video(char["img_url"]):
-            await msg.reply_video(video=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+        if media_type == "photo":
+            await msg.edit_media(
+                InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode="markdown"),
+                reply_markup=markup
+            )
         else:
-            await msg.reply_photo(photo=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+            await msg.edit_media(
+                InputMediaVideo(media=char["img_url"], caption=caption, parse_mode="markdown"),
+                reply_markup=markup
+            )
+
+    except Exception as e:
+        # If editing fails (like first message), send new one
+        if media_type == "photo":
+            await msg.reply_photo(photo=char["img_url"], caption=caption, reply_markup=markup)
+        else:
+            await msg.reply_video(video=char["img_url"], caption=caption, reply_markup=markup)
 
 @app.on_callback_query(filters.regex("^next_char$"))
 async def next_character(client, callback_query):
