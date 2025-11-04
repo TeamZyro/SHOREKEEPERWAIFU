@@ -149,12 +149,12 @@ async def show_character(client, msg, user_id):
     try:
         if media_type == "photo":
             await msg.edit_media(
-                InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode="markdown"),
+                InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML),
                 reply_markup=markup
             )
         else:
             await msg.edit_media(
-                InputMediaVideo(media=char["img_url"], caption=caption, parse_mode="markdown"),
+                InputMediaVideo(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML),
                 reply_markup=markup
             )
     except Exception:
@@ -163,7 +163,7 @@ async def show_character(client, msg, user_id):
             await client.edit_message_media(
                 chat_id=msg.chat.id,
                 message_id=msg.id,
-                media=InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML"),
+                media=InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML),
                 reply_markup=markup
             )
 
