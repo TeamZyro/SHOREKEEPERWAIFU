@@ -2,10 +2,9 @@ import random
 import logging
 import asyncio
 from datetime import datetime, timedelta
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaVideo
 from bson import ObjectId
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaVideo
 from motor.motor_asyncio import AsyncIOMotorClient
 from TEAMZYRO import *
 from pyrogram.enums import ParseMode
@@ -41,19 +40,30 @@ RARITY_PRICE = {
     "🌟 Luminous": 50000,
 }
 
+
+# 🧩 Safe split helper
+def safe_split(data, sep="_", expected=2):
+    parts = data.split(sep, expected - 1)
+    while len(parts) < expected:
+        parts.append(None)
+    return parts
+
+
 async def get_active_discount():
     discount = await discounts_collection.find_one({})
     if discount and discount["expires_at"] > datetime.utcnow():
         return discount["percent"]
     return DEFAULT_DISCOUNT
 
+
 def is_video(url):
     return any(url.lower().endswith(ext) for ext in [".mp4", ".mov", ".webm"])
+
 
 # /discount <percent> <duration>
 @app.on_message(filters.command("discount"))
 async def set_discount(client, message):
-    if message.from_user.id not in TEAMZYRO:
+    if message.from_user.id != TEAMZYRO:
         await message.reply("🚫 Only owners can set discounts.")
         return
 
@@ -93,10 +103,12 @@ async def shop_menu(client, message):
     )
 
 
-# Rarity selection
 @app.on_callback_query(filters.regex(r"^rarity_"))
 async def show_rarity_list(client, callback_query):
-    rarity = callback_query.data.split("_", 1)[1]
+    _, rarity = safe_split(callback_query.data, "_", 2)
+    if not rarity:
+        return await callback_query.answer("⚠️ Invalid rarity data!", show_alert=True)
+
     user_id = callback_query.from_user.id
 
     characters_cursor = collection.find({"rarity": rarity})
@@ -158,12 +170,18 @@ async def show_character(client, msg, user_id):
                 reply_markup=markup
             )
     except Exception:
-        # first time (if can't edit because message doesn't have media)
         if media_type == "photo":
             await client.edit_message_media(
                 chat_id=msg.chat.id,
                 message_id=msg.id,
                 media=InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML),
+                reply_markup=markup
+            )
+        else:
+            await client.edit_message_media(
+                chat_id=msg.chat.id,
+                message_id=msg.id,
+                media=InputMediaVideo(media=char["img_url"], caption=caption, parse_mode=ParseMode.HTML),
                 reply_markup=markup
             )
 
@@ -224,8 +242,12 @@ async def refresh_characters(client, callback_query):
 
 @app.on_callback_query(filters.regex(r"^claim_\d+$"))
 async def claim_character(client, callback_query):
+    _, index_str = safe_split(callback_query.data, "_", 2)
+    if not index_str:
+        return await callback_query.answer("⚠️ Invalid claim data!", show_alert=True)
+
     user_id = callback_query.from_user.id
-    index = int(callback_query.data.split("_")[1])
+    index = int(index_str)
     state = user_shop_state.get(user_id)
     if not state:
         return await callback_query.answer("Please open the shop again!", show_alert=True)
