@@ -106,6 +106,7 @@ async def show_rarity_list(client, callback_query):
 
     await show_character(client, callback_query.message, user_id)
 
+
 async def show_character(client, msg, user_id):
     data = user_shop_state[user_id]
     chars = data["characters"]
@@ -126,16 +127,23 @@ async def show_character(client, msg, user_id):
 
     keyboard = [
         [
+            InlineKeyboardButton("⬅️ Prev", callback_data="prev_char"),
             InlineKeyboardButton("🪄 Claim", callback_data=f"claim_{index}"),
             InlineKeyboardButton("➡️ Next", callback_data="next_char"),
         ],
         [InlineKeyboardButton("🔄 Refresh (5000💫)", callback_data="refresh_chars")]
     ]
 
-    if is_video(char["img_url"]):
-        await msg.reply_video(video=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
-    else:
-        await msg.reply_photo(photo=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+    media = InputMediaVideo(char["img_url"], caption=caption) if is_video(char["img_url"]) else InputMediaPhoto(char["img_url"], caption=caption)
+
+    try:
+        await msg.edit_media(media=media, reply_markup=InlineKeyboardMarkup(keyboard))
+    except Exception:
+        # If first time (no message to edit), send fresh message
+        if is_video(char["img_url"]):
+            await msg.reply_video(video=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+        else:
+            await msg.reply_photo(photo=char["img_url"], caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
 
 @app.on_callback_query(filters.regex("^next_char$"))
 async def next_character(client, callback_query):
@@ -144,12 +152,27 @@ async def next_character(client, callback_query):
         return await callback_query.answer("Start from /shop again!", show_alert=True)
 
     state = user_shop_state[user_id]
-    state["index"] += 1
-    if state["index"] >= len(state["characters"]):
-        return await callback_query.answer("No more heroes in this batch! Try refresh.", show_alert=True)
+    if state["index"] >= len(state["characters"]) - 1:
+        return await callback_query.answer("No more heroes in this batch!", show_alert=True)
 
+    state["index"] += 1
     await show_character(client, callback_query.message, user_id)
     await callback_query.answer()
+
+@app.on_callback_query(filters.regex("^prev_char$"))
+async def prev_character(client, callback_query):
+    user_id = callback_query.from_user.id
+    if user_id not in user_shop_state:
+        return await callback_query.answer("Start from /shop again!", show_alert=True)
+
+    state = user_shop_state[user_id]
+    if state["index"] <= 0:
+        return await callback_query.answer("Already at first hero!", show_alert=True)
+
+    state["index"] -= 1
+    await show_character(client, callback_query.message, user_id)
+    await callback_query.answer()
+
 
 @app.on_callback_query(filters.regex("^refresh_chars$"))
 async def refresh_characters(client, callback_query):
