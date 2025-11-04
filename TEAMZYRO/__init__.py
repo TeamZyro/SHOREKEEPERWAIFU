@@ -73,6 +73,7 @@ user_collection = db["user_collection_lmaoooo"]
 group_user_totals_collection = db['group_user_totalsssssss']
 top_global_groups_collection = db['top_global_groups']
 pm_users = db['total_pm_users']
+discounts_collection = db['discounts']
 # -------------------------- GLOBAL VARIABLES ----------------------------
 app = ZYRO
 sudo_users = SUDO
