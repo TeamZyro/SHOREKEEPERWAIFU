@@ -87,7 +87,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMedi
 async def shop_menu(client, message):
     keyboard = [[InlineKeyboardButton(r, callback_data=f"rarity_{r}")] for r in RARITY_PRICE.keys()]
     await message.reply_photo(
-        photo="https://files.catbox.moe/ohi1vs.jpg",  # <-- your image URL
+        photo="https://files.catbox.moe/ohi1vs.jpg",
         caption="🌟 **Choose a rarity to browse the Bazaar!**",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -108,17 +108,14 @@ async def show_rarity_list(client, callback_query):
     user_shop_state[user_id] = {
         "rarity": rarity,
         "index": 0,
-        "characters": characters[:5]
+        "characters": characters[:5],
+        "message_id": callback_query.message.id
     }
 
-    # Instead of text only, send image + text
-    await callback_query.message.reply_photo(
-        photo="https://files.catbox.moe/ohi1vs.jpg",  # same image or based on rarity
-        caption=f"💎 **{rarity} Bazaar!**\n\nHere are some {rarity}-rarity characters to explore!",
-    )
-
     await show_character(client, callback_query.message, user_id)
-    
+    await callback_query.answer()
+
+
 async def show_character(client, msg, user_id):
     data = user_shop_state[user_id]
     chars = data["characters"]
@@ -130,8 +127,8 @@ async def show_character(client, msg, user_id):
     discounted_price = int(price * (100 - discount) / 100)
 
     caption = (
-        f"🌌 **{char['name']}**\n"
-        f"🏯 **Realm:** {char['anime']}\n"
+        f"💎 **{char['name']}**\n"
+        f"🏯 **Anime:** {char['anime']}\n"
         f"⭐ **Rarity:** {char['rarity']}\n"
         f"💰 **Price:** {discounted_price} Star Coins ({discount}% off!)\n"
         f"🆔 ID: `{char['id']}`"
@@ -145,9 +142,9 @@ async def show_character(client, msg, user_id):
         ],
         [InlineKeyboardButton("🔄 Refresh (5000💫)", callback_data="refresh_chars")]
     ]
+    markup = InlineKeyboardMarkup(keyboard)
 
     media_type = "video" if is_video(char["img_url"]) else "photo"
-    markup = InlineKeyboardMarkup(keyboard)
 
     try:
         if media_type == "photo":
@@ -160,13 +157,16 @@ async def show_character(client, msg, user_id):
                 InputMediaVideo(media=char["img_url"], caption=caption, parse_mode="markdown"),
                 reply_markup=markup
             )
-
-    except Exception as e:
-        # If editing fails (like first message), send new one
+    except Exception:
+        # first time (if can't edit because message doesn't have media)
         if media_type == "photo":
-            await msg.reply_photo(photo=char["img_url"], caption=caption, reply_markup=markup)
-        else:
-            await msg.reply_video(video=char["img_url"], caption=caption, reply_markup=markup)
+            await client.edit_message_media(
+                chat_id=msg.chat.id,
+                message_id=msg.id,
+                media=InputMediaPhoto(media=char["img_url"], caption=caption, parse_mode="markdown"),
+                reply_markup=markup
+            )
+
 
 @app.on_callback_query(filters.regex("^next_char$"))
 async def next_character(client, callback_query):
@@ -181,6 +181,7 @@ async def next_character(client, callback_query):
     state["index"] += 1
     await show_character(client, callback_query.message, user_id)
     await callback_query.answer()
+
 
 @app.on_callback_query(filters.regex("^prev_char$"))
 async def prev_character(client, callback_query):
@@ -220,6 +221,7 @@ async def refresh_characters(client, callback_query):
     await show_character(client, callback_query.message, user_id)
     await callback_query.answer("✨ Refreshed heroes!", show_alert=True)
 
+
 @app.on_callback_query(filters.regex(r"^claim_\d+$"))
 async def claim_character(client, callback_query):
     user_id = callback_query.from_user.id
@@ -254,4 +256,3 @@ async def claim_character(client, callback_query):
         }
     )
     await callback_query.answer(f"🎉 You claimed {char['name']}!", show_alert=True)
-
