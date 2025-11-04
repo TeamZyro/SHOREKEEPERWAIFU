@@ -2,11 +2,13 @@ import random
 import logging
 import asyncio
 from datetime import datetime, timedelta
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from bson import ObjectId
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaVideo
 from motor.motor_asyncio import AsyncIOMotorClient
 from TEAMZYRO import *
+from pyrogram.enums import ParseMode
 
 TEAMZYRO = 7078181502
 
@@ -80,8 +82,6 @@ async def set_discount(client, message):
 
     await message.reply(f"✅ Discount of {percent}% set for {duration} successfully!")
 
-# /shop
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 
 @app.on_message(filters.command(["shop", "hshop", "hshopmenu"]))
 async def shop_menu(client, message):
