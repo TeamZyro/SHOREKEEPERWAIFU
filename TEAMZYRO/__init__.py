@@ -32,8 +32,8 @@ TOKEN = os.getenv("TOKEN", "8308024939:AAHv49KD7nbKG2HVVCm-9MbBxSSEOXdhSJ0")
 GLOG = os.getenv("GLOG", "babhboy")
 CHARA_CHANNEL_ID = os.getenv("CHARA_CHANNEL_ID", "Zlog12")
 SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID", "-1002562168076")
-mongo_url = "mongodb+srv://harshmanjhi1801:speed@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-backup_mongo_url = "mongodb+srv://harshmanjhi1801:speed@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+backup_mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 MUSJ_JOIN = os.getenv("MUSJ_JOIN", "Zlog12")
 
