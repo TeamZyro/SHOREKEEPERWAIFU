@@ -31,6 +31,8 @@ rarity_map = {
     16: "🧧 Events",
     17: "🍑 Echhi",
     18: "🎗️ AMV Edition",
+    19: "🌟 Luminous",
+    20: "🍭 Winter event",
 }
 """
 
