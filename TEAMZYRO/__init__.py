@@ -4,7 +4,7 @@ import os
 from telegram.ext import Application
 from motor.motor_asyncio import AsyncIOMotorClient
 from pyrogram import Client, filters as f
-from pyrogram.types import x
+#from pyrogram.types import x
 from aiogram import Bot, Dispatcher, types
 
 # --------------------------- LOGGING SETUP ------------------------------
@@ -78,7 +78,7 @@ discounts_collection = db['discounts']
 app = ZYRO
 sudo_users = SUDO
 
-x = x
+x = 0000000
 # --------------------------- STRIN ---------------------------------------
 locks = {}
 message_counters = {}
