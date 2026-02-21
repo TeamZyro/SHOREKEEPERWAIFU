@@ -13,5 +13,6 @@ pillow
 apscheduler==3.6.3
 aiofiles
 python-dotenv==0.21.0
-git+https://github.com/MrZyro/pyrogram.git
+#git+https://github.com/MrZyro/pyrogram.git
+kurigram
 aiogram
