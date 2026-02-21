@@ -1,9 +1,9 @@
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, x
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from pymongo import MongoClient
 from TEAMZYRO import *
 from functools import wraps
-
+x = 00000
 sudo_users = db['sudo_users']
 
 # Predefined powers
