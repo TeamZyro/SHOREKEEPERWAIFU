@@ -35,7 +35,7 @@ SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID", "-1002562168076")
 mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 backup_mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-MUSJ_JOIN = os.getenv("MUSJ_JOIN", "Zlog12")
+MUSJ_JOIN = os.getenv("MUSJ_JOIN", "LoverCodesChat")
 
 # Modified to support both image and video URLs
 # 🔹 START_MEDIA (Fixed: Direct URLs inside code)
