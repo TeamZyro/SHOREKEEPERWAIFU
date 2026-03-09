@@ -7,8 +7,6 @@ from TEAMZYRO import app as ZYRO, collection
 
 @ZYRO.on_message(filters.command(["addcheckimg"]))
 async def addcheckimg_command(client, message):
-    if message.from_user.id != 7018103039:
-        return await message.reply_text("You do not have permission to use this command.")
 
     status_msg = await message.reply_text("Starting image check... This may take a while.")
     
