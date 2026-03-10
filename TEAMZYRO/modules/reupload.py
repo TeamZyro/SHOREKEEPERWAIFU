@@ -4,6 +4,8 @@ import requests
 from pyrogram import filters
 from TEAMZYRO import ZYRO, collection, require_power, GLOG
 
+UPLOAD_API = "https://envs.sh"  # change to catbox if needed
+
 # ─────────────────────────────────────────────────
 #  /reupload <id1> <id2> <id3> ...
 #
@@ -18,20 +20,19 @@ from TEAMZYRO import ZYRO, collection, require_power, GLOG
 # ─────────────────────────────────────────────────
 
 
-def upload_to_catbox(file_path: str) -> str:
-    """Upload a local file to catbox.moe and return the public URL."""
-    api_url = "https://catbox.moe/user/api.php"
+def upload_to_envs(file_path: str) -> str:
+    """Upload a local file to envs.sh and return the public URL."""
     with open(file_path, "rb") as f:
+        fname = os.path.basename(file_path)
         response = requests.post(
-            api_url,
-            data={"reqtype": "fileupload"},
-            files={"fileToUpload": f},
+            UPLOAD_API,
+            files={"file": (fname, f, "image/jpeg")},
             timeout=60,
         )
     resp_text = response.text.strip()
-    if response.status_code == 200 and resp_text.startswith("https"):
+    if response.status_code == 200 and resp_text.startswith("http"):
         return resp_text
-    raise Exception(f"Catbox upload failed ({response.status_code}): {resp_text}")
+    raise Exception(f"envs.sh upload failed ({response.status_code}): {resp_text}")
 
 
 async def find_char(char_id: str):
@@ -137,8 +138,8 @@ async def reupload_handler(client, message):
             if file_size < 100:
                 raise Exception(f"Downloaded file too small ({file_size} bytes) — image may be invalid")
 
-            # ── Step 4: Upload to Catbox ───────────
-            new_url = upload_to_catbox(path)
+            # ── Step 4: Upload to envs.sh ──────────
+            new_url = upload_to_envs(path)
 
             # ── Step 5: Update MongoDB ─────────────
             # Match using the exact stored_id value (preserves original type)
