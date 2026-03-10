@@ -4,7 +4,8 @@ import requests
 from pyrogram import filters
 from TEAMZYRO import ZYRO, collection, require_power, GLOG
 
-UPLOAD_API = "https://envs.sh"  # change to catbox if needed
+UPLOAD_API = "https://api.imgbb.com/1/upload"
+IMGBB_API_KEY = "597b4dafe768f0e8e6a03f4e1b8b5010"
 
 # ─────────────────────────────────────────────────
 #  /reupload <id1> <id2> <id3> ...
@@ -14,25 +15,27 @@ UPLOAD_API = "https://envs.sh"  # change to catbox if needed
 #   2. Bot sends_photo with that URL to GLOG chat
 #      → Telegram downloads from its cache
 #   3. Bot downloads the photo via Telegram file_id
-#   4. Re-uploads to Catbox → gets fresh URL
+#   4. Re-uploads to ImgBB → gets fresh URL
 #   5. Updates img_url in DB (matched by exact stored id)
 #   6. Deletes the temp Telegram message
 # ─────────────────────────────────────────────────
 
 
-def upload_to_envs(file_path: str) -> str:
-    """Upload a local file to envs.sh and return the public URL."""
+def upload_to_imgbb(file_path: str) -> str:
+    """Upload a local file to ImgBB and return the public URL."""
     with open(file_path, "rb") as f:
-        fname = os.path.basename(file_path)
         response = requests.post(
             UPLOAD_API,
-            files={"file": (fname, f, "image/jpeg")},
+            data={"key": IMGBB_API_KEY},
+            files={"image": f},
             timeout=60,
         )
-    resp_text = response.text.strip()
-    if response.status_code == 200 and resp_text.startswith("http"):
-        return resp_text
-    raise Exception(f"envs.sh upload failed ({response.status_code}): {resp_text}")
+    if response.status_code == 200:
+        data = response.json()
+        if data.get("success"):
+            return data["data"]["url"]
+            
+    raise Exception(f"ImgBB upload failed ({response.status_code}): {response.text}")
 
 
 async def find_char(char_id: str):
@@ -138,8 +141,8 @@ async def reupload_handler(client, message):
             if file_size < 100:
                 raise Exception(f"Downloaded file too small ({file_size} bytes) — image may be invalid")
 
-            # ── Step 4: Upload to envs.sh ──────────
-            new_url = upload_to_envs(path)
+            # ── Step 4: Upload to ImgBB ──────────
+            new_url = upload_to_imgbb(path)
 
             # ── Step 5: Update MongoDB ─────────────
             # Match using the exact stored_id value (preserves original type)
