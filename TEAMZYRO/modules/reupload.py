@@ -1,4 +1,5 @@
 import os
+import asyncio
 import requests
 from pyrogram import filters
 from TEAMZYRO import ZYRO, collection, require_power, GLOG
@@ -8,11 +9,11 @@ from TEAMZYRO import ZYRO, collection, require_power, GLOG
 #
 #  Flow for each ID:
 #   1. Fetch existing (broken) img_url from DB
-#   2. Bot calls send_photo() with that URL →
-#      Telegram downloads it from its cache
+#   2. Bot sends_photo with that URL to GLOG chat
+#      → Telegram downloads from its cache
 #   3. Bot downloads the photo via Telegram file_id
 #   4. Re-uploads to Catbox → gets fresh URL
-#   5. Updates img_url + status="working" in DB
+#   5. Updates img_url in DB (matched by exact stored id)
 #   6. Deletes the temp Telegram message
 # ─────────────────────────────────────────────────
 
@@ -27,9 +28,38 @@ def upload_to_catbox(file_path: str) -> str:
             files={"fileToUpload": f},
             timeout=60,
         )
-    if response.status_code == 200 and response.text.strip().startswith("https"):
-        return response.text.strip()
-    raise Exception(f"Catbox upload failed: {response.text.strip()}")
+    resp_text = response.text.strip()
+    if response.status_code == 200 and resp_text.startswith("https"):
+        return resp_text
+    raise Exception(f"Catbox upload failed ({response.status_code}): {resp_text}")
+
+
+async def find_char(char_id: str):
+    """
+    Try multiple ID formats because MongoDB may store as string "60"
+    or zero-padded "60" or integer 60.
+    """
+    # Try as-is string
+    char = await collection.find_one({"id": char_id})
+    if char:
+        return char
+
+    # Try zero-padded string e.g. "60" → already tried, try "060"
+    padded = char_id.zfill(2)
+    if padded != char_id:
+        char = await collection.find_one({"id": padded})
+        if char:
+            return char
+
+    # Try integer
+    try:
+        char = await collection.find_one({"id": int(char_id)})
+        if char:
+            return char
+    except ValueError:
+        pass
+
+    return None
 
 
 @ZYRO.on_message(filters.command(["reupload"]))
@@ -37,19 +67,17 @@ def upload_to_catbox(file_path: str) -> str:
 async def reupload_handler(client, message):
     """
     Usage:
-      /reupload 30
+      /reupload 60
       /reupload 30 60 61 100
     """
-    args = message.text.split()[1:]   # skip command
+    args = message.text.split()[1:]
 
     if not args:
         return await message.reply_text(
             "❌ **Wrong format!**\n\n"
             "Usage:\n"
-            "`/reupload 30`\n"
-            "`/reupload 30 60 61 100`\n\n"
-            "Bot will fetch the image from Telegram using the broken URL,\n"
-            "re-upload to Catbox and update the database."
+            "`/reupload 60`\n"
+            "`/reupload 30 60 61 100`"
         )
 
     status_msg = await message.reply_text(
@@ -66,70 +94,88 @@ async def reupload_handler(client, message):
         sent_msg = None
 
         try:
-            # ── Find character in DB ───────────────
-            char = await collection.find_one({"id": char_id})
-            if not char:
-                try:
-                    char = await collection.find_one({"id": int(char_id)})
-                except Exception:
-                    pass
-
+            # ── Step 1: Find character in DB ───────
+            char = await find_char(char_id)
             if not char:
                 results.append(f"❌ `{char_id}` — not found in DB")
                 fail += 1
                 continue
 
-            name    = char.get("name", "?")
-            old_url = char.get("img_url", "")
+            stored_id = char.get("id")           # exact value stored in DB
+            name      = char.get("name", "?")
+            old_url   = char.get("img_url", "")
 
             if not old_url:
                 results.append(f"❌ `{char_id}` ({name}) — no img_url in DB")
                 fail += 1
                 continue
 
-            # ── Step 1: Send photo via broken URL ──
-            # Telegram will pull the image from its cache / servers
-            sent_msg = await client.send_photo(
-                chat_id=GLOG,
-                photo=old_url,
-                caption=f"#reupload id:{char_id}"
-            )
+            # ── Step 2: Send photo to GLOG ─────────
+            # Telegram fetches image from its cache using the old URL
+            try:
+                sent_msg = await client.send_photo(
+                    chat_id=GLOG,
+                    photo=old_url,
+                    caption=f"#reupload id:{char_id}"
+                )
+            except Exception as send_err:
+                results.append(f"❌ `{char_id}` ({name}) — Telegram send failed: `{str(send_err)[:80]}`")
+                fail += 1
+                continue
 
-            # ── Step 2: Download from Telegram ─────
+            # ── Step 3: Download from Telegram ─────
+            tmp_file = f"/tmp/reupload_{char_id}.jpg"
             path = await client.download_media(
                 sent_msg.photo.file_id,
-                file_name=f"/tmp/reupload_{char_id}.jpg"
+                file_name=tmp_file
             )
 
-            # ── Step 3: Upload to Catbox ───────────
+            if not path or not os.path.exists(path):
+                raise Exception("Download from Telegram returned empty file")
+
+            file_size = os.path.getsize(path)
+            if file_size < 100:
+                raise Exception(f"Downloaded file too small ({file_size} bytes) — image may be invalid")
+
+            # ── Step 4: Upload to Catbox ───────────
             new_url = upload_to_catbox(path)
 
-            # ── Step 4: Update MongoDB ─────────────
-            await collection.update_one(
-                {"id": char.get("id")},
+            # ── Step 5: Update MongoDB ─────────────
+            # Match using the exact stored_id value (preserves original type)
+            update_result = await collection.update_one(
+                {"id": stored_id},
                 {"$set": {"img_url": new_url, "status": "working"}}
             )
 
-            results.append(f"✅ `{char_id}` **{name}**\n   └ `{new_url}`")
-            success += 1
+            if update_result.matched_count == 0:
+                raise Exception(f"DB match failed for id={stored_id!r} (type={type(stored_id).__name__})")
+
+            if update_result.modified_count == 0:
+                results.append(f"⚠️ `{char_id}` ({name}) — matched but not modified (same URL?)")
+            else:
+                results.append(f"✅ `{char_id}` **{name}**\n   └ `{new_url}`")
+                success += 1
 
         except Exception as e:
-            results.append(f"❌ `{char_id}` — `{str(e)[:100]}`")
+            results.append(f"❌ `{char_id}` — `{str(e)[:120]}`")
             fail += 1
 
         finally:
-            # Clean up temp Telegram message
+            # Delete temp Telegram message
             if sent_msg:
                 try:
                     await sent_msg.delete()
                 except Exception:
                     pass
-            # Clean up local file
+            # Delete local file
             if path and os.path.exists(path):
                 try:
                     os.remove(path)
                 except Exception:
                     pass
+
+            # Small delay to avoid flood
+            await asyncio.sleep(0.5)
 
     # ── Final summary ─────────────────────────────
     summary = "\n".join(results)
