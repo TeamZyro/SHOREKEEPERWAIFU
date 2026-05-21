@@ -106,7 +106,7 @@ async def shop_menu(client, message):
     keyboard = []
     for i, r in enumerate(RARITY_PRICE.keys()):
         keyboard.append(
-            [InlineKeyboardButton(r, callback_data=f"rarity_{i}")]
+            [InlineKeyboardButton(r, callback_data=f"xeno_{i}")]
         )
 
     await message.reply_photo(
@@ -118,7 +118,7 @@ async def shop_menu(client, message):
 
 # ---------------- SHOW RARITY ---------------- #
 
-@app.on_callback_query(filters.regex(r"^rarity_\d+$"))
+@app.on_callback_query(filters.regex(r"^xeno_\d+$"))
 async def show_rarity_list(client, callback_query):
     _, index_str = safe_split(callback_query.data, "_", 2)
 
