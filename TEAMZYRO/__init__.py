@@ -35,7 +35,7 @@ SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID", "-1002562168076")
 mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 backup_mongo_url = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-MUSJ_JOIN = os.getenv("MUSJ_JOIN", "LoverCodesChat")
+MUSJ_JOIN = os.getenv("MUSJ_JOIN", "oneforall_support")
 
 # Modified to support both image and video URLs
 # 🔹 START_MEDIA (Fixed: Direct URLs inside code)
@@ -53,10 +53,10 @@ STATS_IMG = ["https://files.catbox.moe/gknnju.jpg"]
 
 DB_NAME = "shoreskeeper"
 
-SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "https://t.me/zyrosupport")
-UPDATE_CHAT = os.getenv("UPDATE_CHAT", "https://t.me/Zyro_Network")
-SUDO = list(map(int, os.getenv("SUDO", "7073835511,7073835511").split(',')))
-OWNER_ID = int(os.getenv("OWNER_ID", "7918103039"))
+SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "https://t.me/oneforall_support")
+UPDATE_CHAT = os.getenv("UPDATE_CHAT", "https://t.me/PiratesBotRepo")
+SUDO = list(map(int, os.getenv("SUDO", "7073835511,7078181502").split(',')))
+OWNER_ID = int(os.getenv("OWNER_ID", "7078181502"))
 
 # --------------------- TELEGRAM BOT CONFIGURATION -----------------------
 command_filter = f.create(lambda _, __, message: message.text and message.text.startswith("/"))
