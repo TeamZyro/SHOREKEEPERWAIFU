@@ -96,7 +96,7 @@ async def get_random_character(user_id, safe_opened):
             elif safe_opened == 5:
                 rarities = ['🔮 Limited Edition', '💸 Premium Edition']
             elif safe_opened == 6:
-                rarities = ['🎐 Celestial', '🍑 Echhi']
+                rarities = ['🎐 Celestial', '🎭 Cosplay Master 🎭']
             else:
                 return None
 
