@@ -21,7 +21,7 @@ RARITY_WEIGHTS = {
     "💮 Special Edition": (8, True),     # Very rare
     "🔮 Limited Edition": (6, True),     # Extremely rare
     "💸 Premium Edition": (4, True),     # Ultra-rare
-    "🌤 Summer": (3, False),             # Seasonal rarity
+    "🌤 Summer": (3, True),             # Seasonal rarity
     "🎐 Celestial": (2.5, True),         # Cosmic themed rarity
     "❄️ Winter": (2, False),             # Winter themed rarity
     "💝 Valentine": (2, False),          # Valentine's rarity
