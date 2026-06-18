@@ -2,7 +2,7 @@ import os
 import importlib.util
 import random
 import time
-from pyrogram import Client, filters
+from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from TEAMZYRO import *
 from TEAMZYRO.unit.zyro_help import HELP_DATA  
@@ -29,17 +29,15 @@ async def generate_start_message(client, message):
     ping = round(time.time() - message.date.timestamp(), 2)
     uptime = get_uptime()
     
-    caption = f"""🍃 ɢʀᴇᴇᴛɪɴɢs, ɪ'ᴍ {bot_name} 🫧, ɴɪᴄᴇ ᴛᴏ ᴍᴇᴇᴛ ʏᴏᴜ!
-━━━━━━━▧▣▧━━━━━━━
-⦾ ᴡʜᴀᴛ ɪ ᴅᴏ: ɪ sᴘᴀᴡɴ   
-     ᴡᴀɪғᴜs ɪɴ ʏᴏᴜʀ ᴄʜᴀᴛ ғᴏʀ
-     ᴜsᴇʀs ᴛᴏ ɢʀᴀʙ.
-⦾ ᴛᴏ ᴜsᴇ ᴍᴇ: ᴀᴅᴅ ᴍᴇ ᴛᴏ ʏᴏᴜʀ
-     ɢʀᴏᴜᴘ ᴀɴᴅ ᴛᴀᴘ ᴛʜᴇ ʜᴇʟᴘ
-     ʙᴜᴛᴛᴏɴ ғᴏʀ ᴅᴇᴛᴀɪʟs.
-━━━━━━━▧▣▧━━━━━━━
-➺ ᴘɪɴɢ: {ping} ms
-➺ ᴜᴘᴛɪᴍᴇ: {uptime}"""
+    caption = (
+        f"🍃 𝖦𝗋𝖾𝖾𝗍𝗂𝗇𝗀𝗌, 𝖨'𝗆 <b>{bot_name}</b> 🫧\n\n"
+        f"<blockquote>━━━━━━━▧▣▧━━━━━━━\n"
+        f"⦾ <b>𝖶𝖧𝖤𝖱𝖤:</b> 𝖨 𝗌𝗉𝖺𝗐𝗇 𝗐𝖺𝗂𝖿𝗎𝗌 𝗂𝗇 𝗒𝗈𝗎𝗋 𝖼𝗁𝖺𝗍 𝖿𝗈𝗋 𝗎𝗌𝖾𝗋𝗌 𝗍𝗈 𝗀𝗋𝖺𝖻.\n"
+        f"⦾ <b>𝖧𝖮𝖶 𝖳𝖮 𝖴𝖲𝖤:</b> 𝖠𝖽𝖽 𝗆𝖾 𝗍𝗈 𝗒𝗈𝗎𝗋 𝗀𝗋𝗈𝗎𝗉 𝖺𝗇𝖽 𝗎𝗌𝖾 /help 𝖿𝗈𝗋 𝖼𝗈𝗆𝗆𝖺𝗇𝖽𝗌.\n"
+        f"━━━━━━━▧▣▧━━━━━━━\n"
+        f"⚡ <b>𝖯𝖨𝖭𝖦:</b> {ping} ms\n"
+        f"⏳ <b>𝖴𝖯𝖳𝖨𝖬𝖤:</b> {uptime}</blockquote>"
+    )
 
     buttons = [
         [InlineKeyboardButton("Aᴅᴅ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ", url=f"https://t.me/{bot_user.username}?startgroup=true")],
@@ -54,7 +52,11 @@ async def generate_start_message(client, message):
 # 🔹 Function to Generate Group Start Message & Buttons
 async def generate_group_start_message(client):
     bot_user = await client.get_me()
-    caption = f"🍃 ɪ'ᴍ {bot_user.first_name} 🫧\nɪ sᴘᴀᴡɴ ᴡᴀɪғᴜs ɪɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ ғᴏʀ ᴜsᴇʀs ᴛᴏ ɢʀᴀʙ.\nᴜsᴇ /help ғᴏʀ ᴍᴏʀᴇ ɪɴғᴏ."
+    caption = (
+        f"🍃 𝖨'𝗆 <b>{bot_user.first_name}</b> 🫧\n\n"
+        f"<blockquote>𝖨 𝗌𝗉𝖺𝗐𝗇 𝗐𝖺𝗂𝖿𝗎𝗌 𝗂𝗇 𝗒𝗈𝗎𝗋 𝗀𝗋𝗈𝗎𝗉 𝗐𝗂𝗍𝗁 𝗆𝖾𝗌𝗌𝖺𝗀𝖾 𝖼𝗈𝗎𝗇𝗍𝗌 𝖿𝗈𝗋 𝗉𝗅𝖺𝗒𝖾𝗋𝗌 𝗍𝗈 /guess.\n"
+        f"𝖴𝗌𝖾 /help 𝖿𝗈ʀ ᴍᴏʀᴇ ɪɴғᴏ.</blockquote>"
+    )
     buttons = [
         [
             InlineKeyboardButton("Aᴅᴅ Mᴇ", url=f"https://t.me/{bot_user.username}?startgroup=true"),
@@ -66,11 +68,11 @@ async def generate_group_start_message(client):
 # 🔹 Send Media (Helper)
 async def send_media_message(message, media, caption, buttons):
     if media.lower().endswith(('.png', '.jpg', '.jpeg')):
-        await message.reply_photo(photo=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons))
+        await message.reply_photo(photo=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
     elif media.lower().endswith('.gif'):
-        await message.reply_animation(animation=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons))
+        await message.reply_animation(animation=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
     else:
-        await message.reply_video(video=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons))
+        await message.reply_video(video=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
 
 # 🔹 Private Start Command Handler
 @app.on_message(filters.command("start") & filters.private)
@@ -119,12 +121,24 @@ async def show_help_menu(client, query: CallbackQuery):
     buttons = find_help_modules()
     buttons.append([InlineKeyboardButton("⬅ Back", callback_data="back_to_home")])
 
-    await query.message.edit_text(
-        """*ᴄʜᴏᴏsᴇ ᴛʜᴇ ᴄᴀᴛᴇɢᴏʀʏ ғᴏʀ ᴡʜɪᴄʜ ʏᴏᴜ ᴡᴀɴɴᴀ ɢᴇᴛ ʜᴇʟᴩ.
-
-ᴀʟʟ ᴄᴏᴍᴍᴀɴᴅs ᴄᴀɴ ʙᴇ ᴜsᴇᴅ ᴡɪᴛʜ : /""",
-        reply_markup=InlineKeyboardMarkup(buttons)
+    text = (
+        "⚙️ <b>𝖧𝖤𝖫𝖯 𝖬𝖤𝖭𝖴</b>\n\n"
+        "<blockquote>ᴄʜᴏᴏsᴇ ᴛʜᴇ ᴄᴀᴛᴇɢᴏʀʏ ғᴏʀ ᴡʜɪᴄʜ ʏᴏᴜ ᴡᴀɴɴᴀ ɢᴇᴛ ʜᴇʟᴩ.\n\n"
+        "ᴀʟʟ ᴄᴏᴍᴍᴀɴᴅs ᴄᴀɴ ʙᴇ ᴜsᴇᴅ ᴡɪᴛʜ : /</blockquote>"
     )
+
+    try:
+        await query.message.edit_caption(
+            caption=text,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode=enums.ParseMode.HTML
+        )
+    except Exception:
+        await query.message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode=enums.ParseMode.HTML
+        )
 
 # 🔹 Individual Module Help Handler
 @app.on_callback_query(filters.regex(r"^help_(.+)"))
@@ -135,10 +149,21 @@ async def show_help(client, query: CallbackQuery):
         module_data = HELP_DATA.get(module_name, {})
         help_text = module_data.get("HELP", "Is module ka koi help nahi hai.")
         buttons = [[InlineKeyboardButton("⬅ Back", callback_data="open_help")]]
-        await query.message.edit_text(
-            f"**{module_name} Help:**\n\n{help_text}",
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
+        
+        full_text = f"<b>{module_name.upper()} Help:</b>\n\n{help_text}"
+        
+        try:
+            await query.message.edit_caption(
+                caption=full_text,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception:
+            await query.message.edit_text(
+                text=full_text,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
+            )
     except Exception as e:
         await query.answer("Help load karne me error aayi!")
 
@@ -147,9 +172,15 @@ async def show_help(client, query: CallbackQuery):
 async def back_to_home(client, query: CallbackQuery):
     time.sleep(1)
     caption, buttons = await generate_start_message(client, query.message)
-    await query.message.edit_text(
-        caption,
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
-
-
+    try:
+        await query.message.edit_caption(
+            caption=caption,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode=enums.ParseMode.HTML
+        )
+    except Exception:
+        await query.message.edit_text(
+            text=caption,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode=enums.ParseMode.HTML
+        )

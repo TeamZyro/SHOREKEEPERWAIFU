@@ -158,29 +158,6 @@ Check out the top users and groups in different categories!
 - Rankings update dynamically as users collect characters or earn coins.
 """
     },
-    "mines": {
-        "HELP_NAME": "Mɪɴᴇs",
-        "HELP": """
-💣 **Minesweeper Game** 💣  
-
-🎮 **How to Play:**
-- Start the game using `/mines`.
-- You need **1000 coins** to play.
-- A 3×3 grid hides **3 mines**.
-- You can survive **1 mine hit**, but the 2nd one ends the game.
-- Open safe cells to earn rewards and claim anytime.
-
-🏆 **Rewards:**
-- 1 safe cell → 600 coins  
-- 2 safe cells → 1200 coins  
-- 3 safe cells → 1800 coins  
-- 4–5 safe cells → 🎴 Character reward  
-- 6 safe cells → 🎴 Character + 2000 coins  
-
-📝 **Commands:**
-- `/mines` → Start a new Minesweeper game.
-"""
-    },
     "sips": {
         "HELP_NAME": "Sɪᴘs",
         "HELP": """
@@ -213,6 +190,106 @@ Each result includes:
 4. Make sure you have enough balance!
 
 🔹 Enjoy shopping!
+"""
+    },
+    "coinflip": {
+        "HELP_NAME": "Cᴏɪɴғʟɪᴘ",
+        "HELP": """
+🪙 **Coinflip Betting Game** 🪙
+
+🎮 **How to Play:**
+- Use `/coinflip <amount> <heads/tails>` (or `/toss <amount> <h/t>`).
+- If your guess is correct, you win **2x your bet**!
+- If your guess is incorrect, you lose your bet.
+
+📝 **Limits:**
+- Minimum bet: 100 coins.
+- Maximum bet: 50,000 coins.
+"""
+    },
+    "slots": {
+        "HELP_NAME": "Sʟᴏᴛs",
+        "HELP": """
+🎰 **Slot Machine Game** 🎰
+
+🎮 **How to Play:**
+- Spin the slots using `/slot <amount>` (or `/slots <amount>`).
+- The reels spin and generate 3 random emojis.
+
+🏆 **Payouts:**
+- 3 matching emojis → **5x payout**! (e.g. [ 💎 | 💎 | 💎 ])
+- 2 matching emojis → **1.5x payout**! (e.g. [ 🍒 | 🍇 | 🍒 ])
+- 0 matching emojis → Bet is lost.
+
+📝 **Limits:**
+- Minimum bet: 100 coins.
+- Maximum bet: 50,000 coins.
+"""
+    },
+    "hl": {
+        "HELP_NAME": "Hɪɢʜ Lᴏᴡ",
+        "HELP": """
+🃏 **Higher or Lower Card Game** 🃏
+
+🎮 **How to Play:**
+- Start using `/hl <amount>` (or `/highlow <amount>`).
+- Guess if the next card drawn will be **Higher** or **Lower** than the current card.
+- Correct guesses increase your streak and current winnings.
+- You can click the **Cashout** button at any point to claim your winnings!
+- If you guess wrong, you bust and lose the bet.
+
+🏆 **Streak Payouts:**
+- Streak 1: **1.4x**
+- Streak 2: **1.8x**
+- Streak 3: **2.2x**
+- Streak 4: **2.6x** (+0.4x per correct guess!)
+
+📝 **Limits:**
+- Minimum bet: 100 coins.
+- Maximum bet: 50,000 coins.
+"""
+    },
+    "blackjack": {
+        "HELP_NAME": "Bʟᴀᴄᴋᴊᴀᴄᴋ",
+        "HELP": """
+🃏 **Blackjack Table Game** 🃏
+
+🎮 **How to Play:**
+- Start using `/bj <amount>` (or `/blackjack <amount>`).
+- You and the dealer are dealt 2 cards. Draw cards to get as close to 21 as possible.
+- Use **Hit 🟢** to draw a card, or **Stand 🔴** to end your turn.
+- If your hand exceeds 21, you bust (lose).
+
+🏆 **Payouts:**
+- Standard Win: **2.0x payout**
+- Natural Blackjack (21): **2.5x payout**
+- Push (Tie): Bet Refunded
+
+📝 **Limits:**
+- Minimum bet: 100 coins.
+- Maximum bet: 50,000 coins.
+"""
+    },
+    "wheel": {
+        "HELP_NAME": "Wʜᴇᴇʟ",
+        "HELP": """
+🎡 **Wheel of Fortune Spin** 🎡
+
+🎮 **How to Play:**
+- Spin the lucky wheel using `/spin <amount>` (or `/wheel <amount>`).
+
+🏆 **Wheel Sectors:**
+- ❌ Bust: 0.0x payout (35% chance)
+- 📉 Half Loss: 0.5x payout (20% chance)
+- ⚖️ Push: 1.0x payout (15% chance)
+- 📈 Win: 1.5x payout (15% chance)
+- 🔥 Double: 2.0x payout (10% chance)
+- 🚀 Jackpot: 5.0x payout (4% chance)
+- 🌟 **Waifu Drop**: Win a random Legendary/Celestial character! (1% chance)
+
+📝 **Limits:**
+- Minimum bet: 100 coins.
+- Maximum bet: 50,000 coins.
 """
     },
     "new_char": {

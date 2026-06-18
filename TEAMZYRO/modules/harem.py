@@ -123,22 +123,29 @@ async def display_harem(client, message, user_id, page, filter_rarity, is_initia
         if page < 0 or page >= total_pages:
             page = 0
 
-        # Build harem message
-        harem_message = f"<b>{escape(message.from_user.first_name)}'s Harem - Page {page+1}/{total_pages}</b>\n"
-        if filter_rarity:
-            harem_message += f"<b>Filtered by: {filter_rarity}</b>\n"
+        # Get user first name
+        user_db = await user_collection.find_one({"id": user_id})
+        user_first_name = user_db.get("first_name", "User") if user_db else "User"
 
+        # Build harem message
+        harem_message = f"🌸 <b>{escape(user_first_name)}'s 𝖧𝖠𝖱𝖤𝖬</b> (𝖯𝖺𝗀𝖾 {page+1}/{total_pages})\n\n"
+        if filter_rarity:
+            harem_message += f"<blockquote>🎯 <b>𝖥𝗂𝗅𝗍𝖾𝗋𝖾𝖽 𝖻𝗒:</b> {filter_rarity}</blockquote>\n"
+
+        harem_message += "<blockquote>"
         # Get characters for the current page
         current_characters = unique_characters[page * 15:(page + 1) * 15]
         current_grouped_characters = {k: list(v) for k, v in groupby(current_characters, key=lambda x: x['anime'])}
 
         # Add character details to the message
         for anime, chars in current_grouped_characters.items():
-            harem_message += f'\n<b>{anime} {len(chars)}/{await collection.count_documents({"anime": anime})}</b>\n'
+            total_anime_chars = await collection.count_documents({"anime": anime})
+            harem_message += f'\n⛩️ <b>{anime}</b> ({len(chars)}/{total_anime_chars})\n'
             for character in chars:
                 count = character_counts[character['id']]
                 rarity_emoji = rarity_map2.get(character.get('rarity'), '')
-                harem_message += f'◈⌠{rarity_emoji}⌡ {character["id"]} {character["name"]} ×{count}\n'
+                harem_message += f'  ◈⌠{rarity_emoji}⌡ <code>{character["id"]}</code> {character["name"]} <b>(x{count})</b>\n'
+        harem_message += "</blockquote>"
 
         # Add inline buttons for collection and video-only collection with counts
         keyboard = [
