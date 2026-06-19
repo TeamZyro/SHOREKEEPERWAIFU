@@ -30,11 +30,11 @@ rarity_map = {
 
 # Game settings
 GRID_SIZE = 4      # Upgraded to 4x4 Grid
-MIN_BET = 500
-MAX_BET = 100000
-MIN_MINES = 1
-MAX_MINES = 12
-MAX_MINE_HITS = 2  # Allows 1 shield-save, 2nd hit is game over
+MIN_BET = 100
+MAX_BET = 10000
+MIN_MINES = 3
+MAX_MINES = 5
+MAX_MINE_HITS = 1  # 1 mine hit is game over
 
 # Math Combinations
 def nCr(n, r):
@@ -223,8 +223,7 @@ async def start_mines(client: Client, message: Message):
         "━━━━━━━━━━━━━━━━━━━━\n"
         f"👤 <b>Player:</b> {message.from_user.first_name}\n"
         f"💰 <b>Bet Amount:</b> <code>{bet:,}</code> coins\n"
-        f"💣 <b>Mines Hidden:</b> <code>{num_mines}</code>\n"
-        f"🛡️ <b>Shield:</b> Active (1 mine hit allowed)\n\n"
+        f"💣 <b>Mines Hidden:</b> <code>{num_mines}</code>\n\n"
         "💎 Sweep the 4x4 grid and open safe cells to increase your multiplier!\n"
         "⚠️ Watch out for hidden mines!"
     )
@@ -263,45 +262,29 @@ async def handle_mine_click(client: Client, callback_query):
         state['mine_hits'] += 1
         grid[x][y] = 2
         
-        if state['mine_hits'] >= MAX_MINE_HITS:
-            # Game Over - Reveal board
-            for r_x in range(GRID_SIZE):
-                for r_y in range(GRID_SIZE):
-                    if (r_x, r_y) in mines:
-                        if grid[r_x][r_y] != 2:
-                            grid[r_x][r_y] = 3
-                    else:
-                        if grid[r_x][r_y] != 1:
-                            grid[r_x][r_y] = 4
-            
-            caption = (
-                "💥 <b>BOOM! Game Over!</b> 💥\n"
-                "━━━━━━━━━━━━━━━━━━━━\n"
-                f"You hit {state['mine_hits']} mines and lost your bet of <b>{bet:,} coins</b>!\n\n"
-                "💣 = Mine Locations | ✨ = Safe Boxes"
-            )
-            await callback_query.message.edit_text(
-                caption,
-                parse_mode=enums.ParseMode.HTML,
-                reply_markup=generate_keyboard(grid, game_id, player_id, safe_opened, state['mine_hits'], num_mines)
-            )
-            del game_state[user_id]
-            return
-        else:
-            await callback_query.answer("⚠️ Mine Exploded! Shield Activated!", show_alert=True)
-            caption = (
-                "💥 <b>Shield Activated!</b> 💥\n"
-                "━━━━━━━━━━━━━━━━━━━━\n"
-                "You hit a mine but survived! Your next mine hit will end the game.\n\n"
-                f"💎 <b>Diamonds Found:</b> {safe_opened}\n"
-                f"📈 <b>Current Multiplier:</b> {get_multiplier(num_mines, safe_opened)}x"
-            )
-            await callback_query.message.edit_text(
-                caption,
-                parse_mode=enums.ParseMode.HTML,
-                reply_markup=generate_keyboard(grid, game_id, player_id, safe_opened, state['mine_hits'], num_mines)
-            )
-            return
+        # Game Over - Reveal board
+        for r_x in range(GRID_SIZE):
+            for r_y in range(GRID_SIZE):
+                if (r_x, r_y) in mines:
+                    if grid[r_x][r_y] != 2:
+                        grid[r_x][r_y] = 3
+                else:
+                    if grid[r_x][r_y] != 1:
+                        grid[r_x][r_y] = 4
+        
+        caption = (
+            "💥 <b>BOOM! Game Over!</b> 💥\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"You hit a mine and lost your bet of <b>{bet:,} coins</b>!\n\n"
+            "💣 = Mine Locations | ✨ = Safe Boxes"
+        )
+        await callback_query.message.edit_text(
+            caption,
+            parse_mode=enums.ParseMode.HTML,
+            reply_markup=generate_keyboard(grid, game_id, player_id, safe_opened, state['mine_hits'], num_mines)
+        )
+        del game_state[user_id]
+        return
     else:
         grid[x][y] = 1
         state['safe_opened'] += 1
