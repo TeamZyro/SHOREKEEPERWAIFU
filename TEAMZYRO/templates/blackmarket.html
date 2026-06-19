@@ -1082,6 +1082,12 @@
                 return;
             }
 
+            if (!selectedCharacter) {
+                showToast("No character selected", "error");
+                return;
+            }
+
+            const charId = selectedCharacter.id;
             showLoader(true);
             closeSellModal();
 
@@ -1093,7 +1099,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        character_id: selectedCharacter.id,
+                        character_id: charId,
                         price: price
                     })
                 });
