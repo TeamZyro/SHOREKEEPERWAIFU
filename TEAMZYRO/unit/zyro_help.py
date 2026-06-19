@@ -58,10 +58,10 @@ Characters are grouped by anime and show the count you own.
         "HELP": """
 Use inline queries to search for characters or view collections.
 
-- `@Gaming_X_World_Bot query` → Search for characters.
-- `@Gaming_X_World_Bot collection.<user_id>` → View a user's character collection.
-- `@Gaming_X_World_Bot collection.<user_id> <name>` → Search within a user's collection.
-- `@Gaming_X_World_Bot <query>.AMV` → Show characters with video clips.
+- `@shorekeeper_RoBot query` → Search for characters.
+- `@shorekeeper_RoBot collection.<user_id>` → View a user's character collection.
+- `@shorekeeper_RoBot collection.<user_id> <name>` → Search within a user's collection.
+- `@shorekeeper_RoBot <query>.AMV` → Show characters with video clips.
 
 Results include character name, anime, rarity, and image/video.
 """
@@ -341,6 +341,42 @@ Make sure to reply with an image when using /addchar!
 ⚠️ **Rules:**
 - Selling characters removes them from your active harem until cancelled or sold.
 - Once another user buys your character, the transaction is permanent.
+"""
+    },
+    "transfer": {
+        "HELP_NAME": "Tʀᴀɴsғᴇʀ",
+        "HELP": """
+📦 **Character Transfer System** (VIP Only)
+
+**Commands:**
+- `/transfer <user_id> <owner_id>` 
+  ┗ Start a secure character transfer from a user to a receiver owner.
+- `/backtransfer <transfer_id>` (or `/untransfer` / `/trback`)
+  ┗ Rollback and revert a completed transfer (valid for up to 1 hour).
+
+**How it works:**
+1. A VIP user initiates the transfer with `/transfer <user_id> <owner_id>`.
+2. A confirmation prompt with Confirm/Cancel buttons is displayed.
+3. The requester clicks Confirm to execute, or Cancel to abort.
+4. If confirmed, all characters are transferred, and a dynamic Transfer ID is generated.
+5. You can undo this action within 1 hour using `/backtransfer <transfer_id>`.
+"""
+    },
+    "bounty": {
+        "HELP_NAME": "Bᴏᴜɴᴛʏ",
+        "HELP": """
+🏴‍☠️ **Wanted Bounty Poster Generator**
+
+**Commands:**
+- `/bounty` 
+  ┗ Generate your custom One Piece-style Wanted Poster showing your balance as your bounty!
+- `/bounty @username` (or reply / user_id)
+  ┗ View the wanted poster and bounty details of another user.
+
+**How it works:**
+1. Your Telegram profile picture is cropped and framed inside the poster.
+2. Your name and balance are drawn with custom distressed typography.
+3. The custom Berry symbol (฿) is drawn natively.
 """
     }
 }
