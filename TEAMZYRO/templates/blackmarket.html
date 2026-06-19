@@ -1020,7 +1020,7 @@
                         <span class="rarity-badge" style="border-color: ${color}; color: ${color};">${char.rarity}</span>
                     </div>
                     <div class="card-info">
-                        <span class="char-name">${char.name}</span>
+                        <span class="char-name">${char.name} <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: normal; margin-left: 4px;">#${char.id}</span></span>
                         <span class="char-anime">${char.anime}</span>
                         <div class="card-footer">
                             <span class="price-tag">💰 ${Number(item.price).toLocaleString()}</span>
@@ -1065,7 +1065,7 @@
                         ${char.count > 1 ? `<span class="count-badge">x${char.count}</span>` : ''}
                     </div>
                     <div class="card-info">
-                        <span class="char-name">${char.name}</span>
+                        <span class="char-name">${char.name} <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: normal; margin-left: 4px;">#${char.id}</span></span>
                         <span class="char-anime">${char.anime}</span>
                         <button class="action-btn secondary" onclick="openSellModal(${JSON.stringify(char).replace(/"/g, '&quot;')})">List for Sale</button>
                     </div>
@@ -1098,7 +1098,7 @@
                         <span class="rarity-badge" style="border-color: ${color}; color: ${color};">${char.rarity}</span>
                     </div>
                     <div class="card-info">
-                        <span class="char-name">${char.name}</span>
+                        <span class="char-name">${char.name} <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: normal; margin-left: 4px;">#${char.id}</span></span>
                         <span class="char-anime">${char.anime}</span>
                         <div class="card-footer" style="margin-bottom: 8px;">
                             <span class="price-tag">💰 ${Number(item.price).toLocaleString()}</span>
@@ -1115,7 +1115,7 @@
         function openSellModal(character) {
             selectedCharacter = character;
             document.getElementById('sell-modal-img').src = character.img_url || 'https://envs.sh/6Y3.jpg';
-            document.getElementById('sell-modal-name').textContent = character.name;
+            document.getElementById('sell-modal-name').textContent = `${character.name} (#${character.id})`;
             document.getElementById('sell-modal-anime').textContent = character.anime;
             
             const rBadge = document.getElementById('sell-modal-rarity');
