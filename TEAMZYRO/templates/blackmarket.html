@@ -607,8 +607,65 @@
             gap: 12px;
         }
 
-        .empty-state-emoji {
-            font-size: 2.5rem;
+        .zoom-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .zoom-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .zoom-img {
+            max-width: 90vw;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .zoom-overlay.active .zoom-img {
+            transform: scale(1);
+        }
+
+        .zoom-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: 300;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 610;
+            transition: background 0.2s ease;
+        }
+
+        .zoom-close-btn:active {
+            background: rgba(255, 255, 255, 0.2);
         }
     </style>
 </head>
@@ -715,6 +772,12 @@
             <span class="tab-icon">📋</span>
             My Listings
         </button>
+    </div>
+
+    <!-- Image Zoom Modal -->
+    <div id="zoom-modal" class="zoom-overlay" onclick="closeZoomModal()">
+        <button class="zoom-close-btn" onclick="event.stopPropagation(); closeZoomModal()">×</button>
+        <img id="zoom-modal-img" class="zoom-img" src="" alt="Zoomed Char" onclick="event.stopPropagation()">
     </div>
 
     <!-- Application Script -->
@@ -953,7 +1016,7 @@
                 card.className = 'card';
                 card.innerHTML = `
                     <div class="card-media">
-                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char">`}
+                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline onclick="openZoomModal('${char.img_url || 'https://envs.sh/6Y3.jpg'}')"></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char" onclick="openZoomModal('${char.img_url || 'https://envs.sh/6Y3.jpg'}')">`}
                         <span class="rarity-badge" style="border-color: ${color}; color: ${color};">${char.rarity}</span>
                     </div>
                     <div class="card-info">
@@ -997,7 +1060,7 @@
                 card.className = 'card';
                 card.innerHTML = `
                     <div class="card-media">
-                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char">`}
+                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline onclick="openZoomModal('${char.img_url || 'https://envs.sh/6Y3.jpg'}')"></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char" onclick="openZoomModal('${char.img_url || 'https://envs.sh/6Y3.jpg'}')">`}
                         <span class="rarity-badge" style="border-color: ${color}; color: ${color};">${char.rarity}</span>
                         ${char.count > 1 ? `<span class="count-badge">x${char.count}</span>` : ''}
                     </div>
@@ -1031,7 +1094,7 @@
                 card.className = 'card';
                 card.innerHTML = `
                     <div class="card-media">
-                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char">`}
+                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline onclick="openZoomModal('${char.img_url || 'https://envs.sh/6Y3.jpg'}')"></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char" onclick="openZoomModal('${char.img_url || 'https://envs.sh/6Y3.jpg'}')">`}
                         <span class="rarity-badge" style="border-color: ${color}; color: ${color};">${char.rarity}</span>
                     </div>
                     <div class="card-info">
@@ -1067,6 +1130,18 @@
         function closeSellModal() {
             document.getElementById('sell-modal-overlay').classList.remove('active');
             selectedCharacter = null;
+        }
+
+        function openZoomModal(imgUrl) {
+            const modal = document.getElementById('zoom-modal');
+            const img = document.getElementById('zoom-modal-img');
+            img.src = imgUrl;
+            modal.classList.add('active');
+        }
+
+        function closeZoomModal() {
+            const modal = document.getElementById('zoom-modal');
+            modal.classList.remove('active');
         }
 
         function adjustSellPrice(amount) {
