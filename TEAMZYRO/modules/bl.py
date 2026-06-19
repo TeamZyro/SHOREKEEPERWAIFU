@@ -57,8 +57,8 @@ def verify_telegram_webapp_data(init_data: str, bot_token: str) -> dict:
         sorted_keys = sorted([k for k in parsed_data.keys() if k != 'hash'])
         data_check_string = '\n'.join([f"{k}={parsed_data[k]}" for k in sorted_keys])
         
-        # Calculate secret key with WebGames prefix
-        secret_key = hmac.new(b"WebGames", bot_token.encode(), hashlib.sha256).digest()
+        # Calculate secret key with WebAppData prefix
+        secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
         
         # Calculate signature hash
         calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
