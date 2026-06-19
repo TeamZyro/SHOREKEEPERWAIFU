@@ -390,12 +390,12 @@ Make sure to reply with an image when using /addchar!
 
 **Limits:**
 - Bet amount: 500 to 100,000 coins (Default: 1000)
-- Mine count: 1 to 12 mines (Default: 3)
+- Mine count: 3 to 5 mines (Default: 3)
 
 **How it works:**
 1. A 4x4 grid is created with your choice of hidden mines.
 2. Sweep the board clicking cells to find 💎 Diamonds.
-3. Your shield protects you from 1 mine explosion, but the 2nd mine ends the game.
+3. A single mine explosion will instantly trigger Game Over and result in losing your bet.
 4. Cashout your winnings at any time using the Claim button.
 
 🏆 **Rewards:**
