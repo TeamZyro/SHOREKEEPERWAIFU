@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 import os
 import random
 import urllib.parse
@@ -609,151 +610,163 @@ async def api_get_harem(request):
     return mongo_json_response({"characters": characters})
 
 async def api_sell_character(request):
-    if request.method == "OPTIONS":
-        return api_options_handler(request)
-    user_info = await get_authed_user(request)
-    if not user_info:
-        return mongo_json_response({"error": "Unauthorized"}, status=401)
-    
-    user_id = user_info['id']
     try:
-        body = await request.json()
-        char_id = str(body.get('character_id'))
-        price = int(body.get('price', 0))
-        if not char_id or price <= 0:
-            return mongo_json_response({"error": "Invalid character_id or price"}, status=400)
-    except Exception:
-        return mongo_json_response({"error": "Invalid request body"}, status=400)
+        if request.method == "OPTIONS":
+            return api_options_handler(request)
+        user_info = await get_authed_user(request)
+        if not user_info:
+            return mongo_json_response({"error": "Unauthorized"}, status=401)
         
-    async with get_user_lock(user_id):
-        user = await user_collection.find_one({'id': user_id})
-        if not user or 'characters' not in user:
-            return mongo_json_response({"error": "You don't have any characters"}, status=400)
+        user_id = user_info['id']
+        try:
+            body = await request.json()
+            char_id = str(body.get('character_id'))
+            price = int(body.get('price', 0))
+            if not char_id or price <= 0:
+                return mongo_json_response({"error": "Invalid character_id or price"}, status=400)
+        except Exception:
+            return mongo_json_response({"error": "Invalid request body"}, status=400)
             
-        character = next((c for c in user['characters'] if str(c.get('id')) == char_id), None)
-        if not character:
-            return mongo_json_response({"error": "Character not found in your harem"}, status=400)
-            
-        user['characters'].remove(character)
-        await user_collection.update_one({'id': user_id}, {'$set': {'characters': user['characters']}})
-        
-        while True:
-            listing_id = str(random.randint(100000, 999999))
-            existing = await black_market_collection.find_one({"listing_id": listing_id})
-            if not existing:
-                break
+        async with get_user_lock(user_id):
+            user = await user_collection.find_one({'id': user_id})
+            if not user or 'characters' not in user:
+                return mongo_json_response({"error": "You don't have any characters"}, status=400)
                 
-        listing = {
-            "listing_id": listing_id,
-            "seller_id": user_id,
-            "seller_username": user_info.get('username') or "",
-            "seller_first_name": user_info.get('first_name') or "User",
-            "character": character,
-            "price": price,
-            "listed_at": datetime.utcnow()
-        }
-        await black_market_collection.insert_one(listing)
-        return mongo_json_response({"success": true, "listing_id": listing_id})
+            character = next((c for c in user['characters'] if str(c.get('id')) == char_id), None)
+            if not character:
+                return mongo_json_response({"error": "Character not found in your harem"}, status=400)
+                
+            user['characters'].remove(character)
+            await user_collection.update_one({'id': user_id}, {'$set': {'characters': user['characters']}})
+            
+            while True:
+                listing_id = str(random.randint(100000, 999999))
+                existing = await black_market_collection.find_one({"listing_id": listing_id})
+                if not existing:
+                    break
+                    
+            listing = {
+                "listing_id": listing_id,
+                "seller_id": user_id,
+                "seller_username": user_info.get('username') or "",
+                "seller_first_name": user_info.get('first_name') or "User",
+                "character": character,
+                "price": price,
+                "listed_at": datetime.utcnow()
+            }
+            await black_market_collection.insert_one(listing)
+            return mongo_json_response({"success": true, "listing_id": listing_id})
+    except Exception as e:
+        traceback.print_exc()
+        return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
 
 async def api_buy_character(request):
-    if request.method == "OPTIONS":
-        return api_options_handler(request)
-    user_info = await get_authed_user(request)
-    if not user_info:
-        return mongo_json_response({"error": "Unauthorized"}, status=401)
-        
-    buyer_id = user_info['id']
     try:
-        body = await request.json()
-        listing_id = body.get('listing_id')
-        if not listing_id:
-            return mongo_json_response({"error": "Invalid listing_id"}, status=400)
-    except Exception:
-        return mongo_json_response({"error": "Invalid request body"}, status=400)
-        
-    listing = await black_market_collection.find_one({"listing_id": listing_id})
-    if not listing:
-        return mongo_json_response({"error": "Listing not found or already sold"}, status=400)
-        
-    seller_id = listing['seller_id']
-    price = listing['price']
-    character = listing['character']
-    
-    if buyer_id == seller_id:
-        return mongo_json_response({"error": "You cannot buy your own listing"}, status=400)
-        
-    lock_1, lock_2 = min(buyer_id, seller_id), max(buyer_id, seller_id)
-    async with get_user_lock(lock_1):
-        async with get_user_lock(lock_2):
-            listing = await black_market_collection.find_one({"listing_id": listing_id})
-            if not listing:
-                return mongo_json_response({"error": "Listing already sold"}, status=400)
-                
-            buyer = await user_collection.find_one({'id': buyer_id})
-            buyer_balance = buyer.get('balance', 0) if buyer else 0
-            if buyer_balance < price:
-                return mongo_json_response({"error": "Insufficient balance"}, status=400)
-                
-            await user_collection.update_one({'id': buyer_id}, {'$inc': {'balance': -price}})
-            await user_collection.update_one({'id': seller_id}, {'$inc': {'balance': price}})
+        if request.method == "OPTIONS":
+            return api_options_handler(request)
+        user_info = await get_authed_user(request)
+        if not user_info:
+            return mongo_json_response({"error": "Unauthorized"}, status=401)
             
-            if buyer:
-                await user_collection.update_one({'id': buyer_id}, {'$push': {'characters': character}})
-            else:
-                await user_collection.insert_one({
-                    'id': buyer_id,
-                    'username': user_info.get('username') or "",
-                    'first_name': user_info.get('first_name') or "User",
-                    'characters': [character],
-                    'balance': 0
-                })
-                
-            await black_market_collection.delete_one({"listing_id": listing_id})
+        buyer_id = user_info['id']
+        try:
+            body = await request.json()
+            listing_id = body.get('listing_id')
+            if not listing_id:
+                return mongo_json_response({"error": "Invalid listing_id"}, status=400)
+        except Exception:
+            return mongo_json_response({"error": "Invalid request body"}, status=400)
             
-            # Send notifications
-            try:
-                buyer_name = user_info.get('first_name') or "User"
-                await app.send_message(
-                    chat_id=seller_id,
-                    text=f"💰 **Character Sold!**\n\nYour character **{character.get('name', 'Unknown')}** was bought by [{buyer_name}](tg://user?id={buyer_id}) for **{price:,}** coins!",
-                    parse_mode=enums.ParseMode.MARKDOWN
-                )
-            except Exception:
-                pass
-                
-            return mongo_json_response({"success": true})
-
-async def api_cancel_listing(request):
-    if request.method == "OPTIONS":
-        return api_options_handler(request)
-    user_info = await get_authed_user(request)
-    if not user_info:
-        return mongo_json_response({"error": "Unauthorized"}, status=401)
-        
-    user_id = user_info['id']
-    try:
-        body = await request.json()
-        listing_id = body.get('listing_id')
-        if not listing_id:
-            return mongo_json_response({"error": "Invalid listing_id"}, status=400)
-    except Exception:
-        return mongo_json_response({"error": "Invalid request body"}, status=400)
-        
-    async with get_user_lock(user_id):
         listing = await black_market_collection.find_one({"listing_id": listing_id})
         if not listing:
-            return mongo_json_response({"error": "Listing not found"}, status=400)
+            return mongo_json_response({"error": "Listing not found or already sold"}, status=400)
             
-        if listing['seller_id'] != user_id:
-            return mongo_json_response({"error": "Only the seller can cancel this listing"}, status=400)
-            
+        seller_id = listing['seller_id']
+        price = listing['price']
         character = listing['character']
-        await user_collection.update_one(
-            {'id': user_id},
-            {'$push': {'characters': character}}
-        )
-        await black_market_collection.delete_one({"listing_id": listing_id})
-        return mongo_json_response({"success": true})
+        
+        if buyer_id == seller_id:
+            return mongo_json_response({"error": "You cannot buy your own listing"}, status=400)
+            
+        lock_1, lock_2 = min(buyer_id, seller_id), max(buyer_id, seller_id)
+        async with get_user_lock(lock_1):
+            async with get_user_lock(lock_2):
+                listing = await black_market_collection.find_one({"listing_id": listing_id})
+                if not listing:
+                    return mongo_json_response({"error": "Listing already sold"}, status=400)
+                    
+                buyer = await user_collection.find_one({'id': buyer_id})
+                buyer_balance = buyer.get('balance', 0) if buyer else 0
+                if buyer_balance < price:
+                    return mongo_json_response({"error": "Insufficient balance"}, status=400)
+                    
+                await user_collection.update_one({'id': buyer_id}, {'$inc': {'balance': -price}})
+                await user_collection.update_one({'id': seller_id}, {'$inc': {'balance': price}})
+                
+                if buyer:
+                    await user_collection.update_one({'id': buyer_id}, {'$push': {'characters': character}})
+                else:
+                    await user_collection.insert_one({
+                        'id': buyer_id,
+                        'username': user_info.get('username') or "",
+                        'first_name': user_info.get('first_name') or "User",
+                        'characters': [character],
+                        'balance': 0
+                    })
+                    
+                await black_market_collection.delete_one({"listing_id": listing_id})
+                
+                # Send notifications
+                try:
+                    buyer_name = user_info.get('first_name') or "User"
+                    await app.send_message(
+                        chat_id=seller_id,
+                        text=f"💰 **Character Sold!**\n\nYour character **{character.get('name', 'Unknown')}** was bought by [{buyer_name}](tg://user?id={buyer_id}) for **{price:,}** coins!",
+                        parse_mode=enums.ParseMode.MARKDOWN
+                    )
+                except Exception:
+                    pass
+                    
+                return mongo_json_response({"success": true})
+    except Exception as e:
+        traceback.print_exc()
+        return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
+
+async def api_cancel_listing(request):
+    try:
+        if request.method == "OPTIONS":
+            return api_options_handler(request)
+        user_info = await get_authed_user(request)
+        if not user_info:
+            return mongo_json_response({"error": "Unauthorized"}, status=401)
+            
+        user_id = user_info['id']
+        try:
+            body = await request.json()
+            listing_id = body.get('listing_id')
+            if not listing_id:
+                return mongo_json_response({"error": "Invalid listing_id"}, status=400)
+        except Exception:
+            return mongo_json_response({"error": "Invalid request body"}, status=400)
+            
+        async with get_user_lock(user_id):
+            listing = await black_market_collection.find_one({"listing_id": listing_id})
+            if not listing:
+                return mongo_json_response({"error": "Listing not found"}, status=400)
+                
+            if listing['seller_id'] != user_id:
+                return mongo_json_response({"error": "Only the seller can cancel this listing"}, status=400)
+                
+            character = listing['character']
+            await user_collection.update_one(
+                {'id': user_id},
+                {'$push': {'characters': character}}
+            )
+            await black_market_collection.delete_one({"listing_id": listing_id})
+            return mongo_json_response({"success": true})
+    except Exception as e:
+        traceback.print_exc()
+        return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
 
 # ----------------- Auth Helpers -----------------
 
