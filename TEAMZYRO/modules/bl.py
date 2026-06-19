@@ -156,12 +156,17 @@ async def sell_character(client, message):
             f"Use `/unsell {listing_id}` to cancel the sale."
         )
         
+        bot_username = client.me.username if client.me else "shorekeeper_RoBot"
+        reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🛒 Open Web App", url=f"https://t.me/{bot_username}?startapp=true")]
+        ])
+        
         if character.get('vid_url'):
-            await message.reply_video(video=character['vid_url'], caption=caption, parse_mode=enums.ParseMode.MARKDOWN)
+            await message.reply_video(video=character['vid_url'], caption=caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
         elif character.get('img_url'):
-            await message.reply_photo(photo=character['img_url'], caption=caption, parse_mode=enums.ParseMode.MARKDOWN)
+            await message.reply_photo(photo=character['img_url'], caption=caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
         else:
-            await message.reply_text(caption, parse_mode=enums.ParseMode.MARKDOWN)
+            await message.reply_text(caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
 
 @app.on_message(filters.command("unsell"))
 async def unsell_character(client, message):
@@ -193,9 +198,15 @@ async def unsell_character(client, message):
         # Remove listing
         await black_market_collection.delete_one({"listing_id": listing_id})
         
+        bot_username = client.me.username if client.me else "shorekeeper_RoBot"
+        reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🛒 Open Web App", url=f"https://t.me/{bot_username}?startapp=true")]
+        ])
+            
         await message.reply_text(
             f"❌ **Listing Cancelled!**\n"
             f"**{character.get('name', 'Unknown')}** has been returned to your harem.",
+            reply_markup=reply_markup,
             parse_mode=enums.ParseMode.MARKDOWN
         )
 
@@ -260,9 +271,15 @@ async def buy_character(client, message):
             buyer_name = message.from_user.first_name or "User"
             seller_name = listing.get('seller_first_name', 'User')
             
+            bot_username = client.me.username if client.me else "shorekeeper_RoBot"
+            reply_markup = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🛒 Open Web App", url=f"https://t.me/{bot_username}?startapp=true")]
+            ])
+
             await message.reply_text(
                 f"🎉 **Purchase Successful!**\n\n"
                 f"You bought **{character.get('name', 'Unknown')}** for **{price:,}** coins from [{seller_name}](tg://user?id={seller_id}).",
+                reply_markup=reply_markup,
                 parse_mode=enums.ParseMode.MARKDOWN
             )
             
@@ -287,8 +304,12 @@ async def my_listings_command(client, message):
     user_id = message.from_user.id
     listings = await black_market_collection.find({"seller_id": user_id}).to_list(length=100)
     
+    bot_username = client.me.username if client.me else "shorekeeper_RoBot"
     if not listings:
-        await message.reply_text("You don't have any active listings in the black market.")
+        reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🛒 Open Web App", url=f"https://t.me/{bot_username}?startapp=true")]
+        ])
+        await message.reply_text("You don't have any active listings in the black market.", reply_markup=reply_markup)
         return
         
     text = "📋 **YOUR BLACK MARKET LISTINGS**\n\n"
@@ -304,6 +325,8 @@ async def my_listings_command(client, message):
         )
         keyboard.append([InlineKeyboardButton(f"❌ Cancel {char.get('name', 'Char')[:12]}...", callback_data=f"bm_cancel_conf:{listing['listing_id']}:0")])
         
+    keyboard.append([InlineKeyboardButton("🛒 Open Web App", url=f"https://t.me/{bot_username}?startapp=true")])
+        
     reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
     await message.reply_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
 
@@ -315,14 +338,14 @@ async def display_black_market(client, message_or_query, page, is_initial=False)
     
     listings = await black_market_collection.find({}).sort("listed_at", -1).to_list(length=100)
     
+    bot_username = client.me.username if client.me else "shorekeeper_RoBot"
     if not listings:
         text = "🛒 **SHOREKEEPER BLACK MARKET**\n\nThere are no active listings at the moment."
-        webapp_url = os.getenv("WEBAPP_URL")
-        keyboard = []
-        if webapp_url:
-            keyboard.append([InlineKeyboardButton("🛒 Open Web App", web_app=WebAppInfo(url=f"{webapp_url}/blackmarket"))])
+        keyboard = [
+            [InlineKeyboardButton("🛒 Open Web App", url=f"https://t.me/{bot_username}?startapp=true")]
+        ]
         
-        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+        reply_markup = InlineKeyboardMarkup(keyboard)
         
         if is_callback:
             await message_or_query.edit_message_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
@@ -377,9 +400,8 @@ async def display_black_market(client, message_or_query, page, is_initial=False)
     if nav_row:
         keyboard.append(nav_row)
         
-    webapp_url = os.getenv("WEBAPP_URL")
-    if webapp_url:
-        keyboard.append([InlineKeyboardButton("🛒 Open Web App", web_app=WebAppInfo(url=f"{webapp_url}/blackmarket"))])
+    bot_username = client.me.username if client.me else "shorekeeper_RoBot"
+    keyboard.append([InlineKeyboardButton("🛒 Open Web App", url=f"https://t.me/{bot_username}?startapp=true")])
         
     reply_markup = InlineKeyboardMarkup(keyboard)
     
@@ -655,7 +677,7 @@ async def api_sell_character(request):
                 "listed_at": datetime.utcnow()
             }
             await black_market_collection.insert_one(listing)
-            return mongo_json_response({"success": true, "listing_id": listing_id})
+            return mongo_json_response({"success": True, "listing_id": listing_id})
     except Exception as e:
         traceback.print_exc()
         return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
@@ -727,7 +749,7 @@ async def api_buy_character(request):
                 except Exception:
                     pass
                     
-                return mongo_json_response({"success": true})
+                return mongo_json_response({"success": True})
     except Exception as e:
         traceback.print_exc()
         return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
@@ -763,7 +785,7 @@ async def api_cancel_listing(request):
                 {'$push': {'characters': character}}
             )
             await black_market_collection.delete_one({"listing_id": listing_id})
-            return mongo_json_response({"success": true})
+            return mongo_json_response({"success": True})
     except Exception as e:
         traceback.print_exc()
         return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
