@@ -796,6 +796,7 @@ async def start_webapp_server():
     app_web.router.add_options('/api/buy', api_options_handler)
     app_web.router.add_options('/api/cancel', api_options_handler)
     
+    app_web.router.add_get('/', serve_webapp_html)
     app_web.router.add_get('/blackmarket', serve_webapp_html)
     app_web.router.add_get('/api/listings', api_get_listings)
     app_web.router.add_get('/api/harem', api_get_harem)
