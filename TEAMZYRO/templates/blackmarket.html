@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shorekeeper Black Market</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #080c14;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --primary-color: var(--tg-theme-button-color, #6366f1);
+            --primary-hover: #4f46e5;
+            --accent-gold: #f59e0b;
+            --text-primary: var(--tg-theme-text-color, #f3f4f6);
+            --text-secondary: var(--tg-theme-hint-color, #9ca3af);
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            padding-bottom: 80px;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Top Bar Styling */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: rgba(8, 12, 20, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-section h1 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a5b4fc, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-emoji {
+            font-size: 1.4rem;
+        }
+
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .balance-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .balance-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Filters Section */
+        .search-filter-section {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            padding-right: 40px;
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+        }
+
+        .filter-scroll {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scrollbar-width: none;
+        }
+
+        .filter-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-pill {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-pill.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Tabs Navigation */
+        .tabs {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(8, 12, 20, 0.95);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 12px;
+            z-index: 100;
+            justify-content: space-around;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            padding: 6px 0;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+        }
+
+        .tab-icon {
+            font-size: 1.25rem;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            padding: 0 16px;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Character Grid & Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+        }
+
+        .card-media {
+            width: 100%;
+            height: 160px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .card-media img, .card-media video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .rarity-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: white;
+            backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .count-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            padding: 3px 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+
+        .card-info {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            gap: 4px;
+        }
+
+        .char-name {
+            font-size: 0.9rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .char-anime {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .price-tag {
+            color: var(--accent-gold);
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .seller-name {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            max-width: 60px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .action-btn {
+            width: 100%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .action-btn:active {
+            background: var(--primary-hover);
+        }
+
+        .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .action-btn.danger {
+            background: var(--danger-color);
+        }
+
+        .action-btn.disabled {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Modals & Popups */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: flex;
+            align-items: flex-end;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            width: 100%;
+            background: #0f1422;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px 24px 0 0;
+            padding: 24px;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: var(--text-primary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-detail-card {
+            display: flex;
+            gap: 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 14px;
+        }
+
+        .modal-detail-img {
+            width: 80px;
+            height: 100px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .modal-detail-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .modal-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-input-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .price-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .price-input-coin {
+            position: absolute;
+            left: 12px;
+            font-size: 1.1rem;
+        }
+
+        .price-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 14px 16px;
+            padding-left: 36px;
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: 700;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .price-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .quick-amounts {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .quick-amount-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-amount-btn:active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-secondary);
+        }
+
+        /* Overlay Loader & Toasts */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(8, 12, 20, 0.85);
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .loader-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(99, 102, 241, 0.1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 16px;
+            right: 16px;
+            z-index: 400;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(17, 24, 39, 0.9);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success { border-left: 4px solid var(--success-color); }
+        .toast.error { border-left: 4px solid var(--danger-color); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .empty-state-emoji {
+            font-size: 2.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <div class="top-bar">
+        <div class="logo-section">
+            <span class="logo-emoji">🛒</span>
+            <h1>Black Market</h1>
+        </div>
+        <div class="profile-section">
+            <span class="balance-label">Coins</span>
+            <span class="balance-value">💰 <span id="user-balance">0</span></span>
+        </div>
+    </div>
+
+    <!-- Filters and Search (Only visible on Market/Harem tabs) -->
+    <div class="search-filter-section" id="filter-container">
+        <div class="search-container">
+            <input type="text" id="search-input" class="search-input" placeholder="Search by name or anime..." oninput="applyFilters()">
+        </div>
+        <div class="filter-scroll" id="rarity-filters">
+            <!-- Filter pills generated dynamically -->
+        </div>
+    </div>
+
+    <!-- Loader Screen -->
+    <div id="loader" class="loader-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toast Messages -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Tab Contents -->
+
+    <!-- Tab 1: Market -->
+    <div id="market-tab" class="tab-content active">
+        <div class="cards-grid" id="market-grid">
+            <!-- Listings generated dynamically -->
+        </div>
+    </div>
+
+    <!-- Tab 2: Harem -->
+    <div id="harem-tab" class="tab-content">
+        <div class="cards-grid" id="harem-grid">
+            <!-- Harem characters generated dynamically -->
+        </div>
+    </div>
+
+    <!-- Tab 3: My Listings -->
+    <div id="listings-tab" class="tab-content">
+        <div class="cards-grid" id="listings-grid">
+            <!-- User listings generated dynamically -->
+        </div>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Sell Modal -->
+    <div class="modal-overlay" id="sell-modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">List Character for Sale</h3>
+                <button class="close-btn" onclick="closeSellModal()">×</button>
+            </div>
+            <div class="modal-detail-card">
+                <img id="sell-modal-img" class="modal-detail-img" src="" alt="Char">
+                <div class="modal-detail-info">
+                    <h4 id="sell-modal-name">Character Name</h4>
+                    <span id="sell-modal-rarity" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 2px;">Rarity</span>
+                    <span id="sell-modal-anime" style="font-size: 0.75rem; color: var(--text-secondary);">Anime Name</span>
+                </div>
+            </div>
+            <div class="modal-input-group">
+                <span class="modal-input-label">Set Selling Price</span>
+                <div class="price-input-container">
+                    <span class="price-input-coin">💰</span>
+                    <input type="number" id="sell-price-input" class="price-input" placeholder="Enter coins amount" min="1">
+                </div>
+            </div>
+            <div class="quick-amounts">
+                <button class="quick-amount-btn" onclick="adjustSellPrice(1000)">+1k</button>
+                <button class="quick-amount-btn" onclick="adjustSellPrice(5000)">+5k</button>
+                <button class="quick-amount-btn" onclick="adjustSellPrice(10000)">+10k</button>
+                <button class="quick-amount-btn" onclick="adjustSellPrice(50000)">+50k</button>
+            </div>
+            <button class="action-btn" id="sell-confirm-btn" onclick="executeSell()">Confirm Listing</button>
+        </div>
+    </div>
+
+    <!-- Tabs Footer Menu -->
+    <div class="tabs">
+        <button class="tab-btn active" id="btn-market" onclick="switchTab('market')">
+            <span class="tab-icon">🛒</span>
+            Market
+        </button>
+        <button class="tab-btn" id="btn-harem" onclick="switchTab('harem')">
+            <span class="tab-icon">🎒</span>
+            My Harem
+        </button>
+        <button class="tab-btn" id="btn-listings" onclick="switchTab('listings')">
+            <span class="tab-icon">📋</span>
+            My Listings
+        </button>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const botToken = "8308024939:AAHv49KD7nbKG2HVVCm-9MbBxSSEOXdhSJ0";
+        const initData = tg.initData || "debug_user_7078181502";
+        const currentUserId = tg.initDataUnsafe?.user?.id || 7078181502;
+
+        let activeTab = 'market';
+        let marketListings = [];
+        let haremCharacters = [];
+        let activeFilters = {
+            search: '',
+            rarity: 'All'
+        };
+        let selectedCharacter = null;
+
+        // Emojis mapping for rarity coloring
+        const rarityColors = {
+            "⚪️ Common": "#9ca3af",
+            "🟣 Rare": "#a855f7",
+            "🟡 Legendary": "#fbbf24",
+            "🟢 Medium": "#34d399",
+            "💮 Special Edition": "#f472b6",
+            "🔮 Limited Edition": "#60a5fa",
+            "💸 Premium Edition": "#fb7185",
+            "🌤 Summer": "#f59e0b",
+            "🎐 Celestial": "#a78bfa",
+            "❄️ Winter": "#38bdf8",
+            "💝 Valentine": "#ec4899",
+            "🎃 Halloween": "#f97316",
+            "🎄 Christmas Special": "#ef4444",
+            "🪐 Omniversal": "#8b5cf6",
+            "🎭 Cosplay Master 🎭": "#ec4899",
+            "🧧 Events": "#10b981",
+            "🍑 Echhi": "#f43f5e",
+            "🎗️ AMV Edition": "#d946ef"
+        };
+
+        // Initialize WebApp
+        window.addEventListener('load', () => {
+            fetchBalance();
+            switchTab('market');
+        });
+
+        function showLoader(show) {
+            document.getElementById('loader').classList.toggle('active', show);
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 50);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Fetch User balance
+        async function fetchBalance() {
+            try {
+                const response = await fetch('/api/balance', {
+                    headers: { 'Authorization': `Bearer ${initData}` }
+                });
+                const data = await response.json();
+                if (data.balance !== undefined) {
+                    document.getElementById('user-balance').textContent = Number(data.balance).toLocaleString();
+                }
+            } catch (err) {
+                console.error("Error fetching balance:", err);
+            }
+        }
+
+        // Tabs switcher
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`${tabId}-tab`).classList.add('active');
+            
+            const btnMap = {
+                'market': 'btn-market',
+                'harem': 'btn-harem',
+                'listings': 'btn-listings'
+            };
+            document.getElementById(btnMap[tabId]).classList.add('active');
+
+            // Filters display logic
+            const filterContainer = document.getElementById('filter-container');
+            if (tabId === 'listings') {
+                filterContainer.style.display = 'none';
+            } else {
+                filterContainer.style.display = 'flex';
+                resetFilters();
+            }
+
+            if (tabId === 'market') fetchMarketListings();
+            if (tabId === 'harem') fetchHaremCharacters();
+            if (tabId === 'listings') fetchUserListings();
+        }
+
+        // Dynamic API loaders
+        async function fetchMarketListings() {
+            showLoader(true);
+            try {
+                const response = await fetch('/api/listings');
+                marketListings = await response.json();
+                generateRarityFilters(marketListings, 'market');
+                renderMarket();
+            } catch (err) {
+                showToast("Failed to load listings", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function fetchHaremCharacters() {
+            showLoader(true);
+            try {
+                const response = await fetch('/api/harem', {
+                    headers: { 'Authorization': `Bearer ${initData}` }
+                });
+                const data = await response.json();
+                haremCharacters = groupCharacters(data.characters || []);
+                generateRarityFilters(haremCharacters, 'harem');
+                renderHarem();
+            } catch (err) {
+                showToast("Failed to load harem", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function fetchUserListings() {
+            showLoader(true);
+            try {
+                const response = await fetch('/api/listings');
+                const all = await response.json();
+                const userListings = all.filter(l => Number(l.seller_id) === Number(currentUserId));
+                renderListings(userListings);
+            } catch (err) {
+                showToast("Failed to load your listings", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        // Processing helpers
+        function groupCharacters(chars) {
+            const grouped = {};
+            chars.forEach(char => {
+                if (!char.id) return;
+                if (!grouped[char.id]) {
+                    grouped[char.id] = { ...char, count: 1 };
+                } else {
+                    grouped[char.id].count += 1;
+                }
+            });
+            return Object.values(grouped);
+        }
+
+        // Dynamic Filtering Elements
+        function generateRarityFilters(items, type) {
+            const rarities = new Set(['All']);
+            items.forEach(item => {
+                const char = type === 'market' ? item.character : item;
+                if (char && char.rarity) rarities.add(char.rarity);
+            });
+
+            const scroll = document.getElementById('rarity-filters');
+            scroll.innerHTML = '';
+            
+            rarities.forEach(rarity => {
+                const pill = document.createElement('div');
+                pill.className = `filter-pill ${activeFilters.rarity === rarity ? 'active' : ''}`;
+                pill.textContent = rarity;
+                pill.onclick = () => {
+                    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+                    pill.classList.add('active');
+                    activeFilters.rarity = rarity;
+                    applyFilters();
+                };
+                scroll.appendChild(pill);
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            activeFilters.search = '';
+            activeFilters.rarity = 'All';
+        }
+
+        function applyFilters() {
+            activeFilters.search = document.getElementById('search-input').value.toLowerCase();
+            if (activeTab === 'market') renderMarket();
+            if (activeTab === 'harem') renderHarem();
+        }
+
+        // Render Templates
+        function renderMarket() {
+            const grid = document.getElementById('market-grid');
+            grid.innerHTML = '';
+
+            const filtered = marketListings.filter(item => {
+                const char = item.character;
+                const matchesSearch = char.name.toLowerCase().includes(activeFilters.search) || 
+                                      char.anime.toLowerCase().includes(activeFilters.search);
+                const matchesRarity = activeFilters.rarity === 'All' || char.rarity === activeFilters.rarity;
+                return matchesSearch && matchesRarity;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="empty-state" style="grid-column: span 2;">
+                    <span class="empty-state-emoji">🌌</span>
+                    <p>No listings found matching filters.</p>
+                </div>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const char = item.character;
+                const color = rarityColors[char.rarity] || '#ffffff';
+                const isOwnListing = Number(item.seller_id) === Number(currentUserId);
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-media">
+                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char">`}
+                        <span class="rarity-badge" style="border-color: ${color}; color: ${color};">${char.rarity}</span>
+                    </div>
+                    <div class="card-info">
+                        <span class="char-name">${char.name}</span>
+                        <span class="char-anime">${char.anime}</span>
+                        <div class="card-footer">
+                            <span class="price-tag">💰 ${Number(item.price).toLocaleString()}</span>
+                            <span class="seller-name">👤 ${item.seller_first_name}</span>
+                        </div>
+                        ${isOwnListing ? 
+                          `<button class="action-btn disabled">Your Listing</button>` : 
+                          `<button class="action-btn" onclick="buyCharacter('${item.listing_id}', ${item.price}, '${char.name.replace(/'/g, "\\'")}')">Buy Now</button>`}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderHarem() {
+            const grid = document.getElementById('harem-grid');
+            grid.innerHTML = '';
+
+            const filtered = haremCharacters.filter(char => {
+                const matchesSearch = char.name.toLowerCase().includes(activeFilters.search) || 
+                                      char.anime.toLowerCase().includes(activeFilters.search);
+                const matchesRarity = activeFilters.rarity === 'All' || char.rarity === activeFilters.rarity;
+                return matchesSearch && matchesRarity;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="empty-state" style="grid-column: span 2;">
+                    <span class="empty-state-emoji">🎒</span>
+                    <p>No characters found in your harem.</p>
+                </div>`;
+                return;
+            }
+
+            filtered.forEach(char => {
+                const color = rarityColors[char.rarity] || '#ffffff';
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-media">
+                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char">`}
+                        <span class="rarity-badge" style="border-color: ${color}; color: ${color};">${char.rarity}</span>
+                        ${char.count > 1 ? `<span class="count-badge">x${char.count}</span>` : ''}
+                    </div>
+                    <div class="card-info">
+                        <span class="char-name">${char.name}</span>
+                        <span class="char-anime">${char.anime}</span>
+                        <button class="action-btn secondary" onclick="openSellModal(${JSON.stringify(char).replace(/"/g, '&quot;')})">List for Sale</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderListings(listings) {
+            const grid = document.getElementById('listings-grid');
+            grid.innerHTML = '';
+
+            if (listings.length === 0) {
+                grid.innerHTML = `<div class="empty-state" style="grid-column: span 2;">
+                    <span class="empty-state-emoji">📋</span>
+                    <p>You have no active listings on sale.</p>
+                </div>`;
+                return;
+            }
+
+            listings.forEach(item => {
+                const char = item.character;
+                const color = rarityColors[char.rarity] || '#ffffff';
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-media">
+                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char">`}
+                        <span class="rarity-badge" style="border-color: ${color}; color: ${color};">${char.rarity}</span>
+                    </div>
+                    <div class="card-info">
+                        <span class="char-name">${char.name}</span>
+                        <span class="char-anime">${char.anime}</span>
+                        <div class="card-footer" style="margin-bottom: 8px;">
+                            <span class="price-tag">💰 ${Number(item.price).toLocaleString()}</span>
+                            <span class="seller-name">ID: ${item.listing_id}</span>
+                        </div>
+                        <button class="action-btn danger" onclick="cancelListing('${item.listing_id}')">Cancel Sale</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Sell Modal operations
+        function openSellModal(character) {
+            selectedCharacter = character;
+            document.getElementById('sell-modal-img').src = character.img_url || 'https://envs.sh/6Y3.jpg';
+            document.getElementById('sell-modal-name').textContent = character.name;
+            document.getElementById('sell-modal-anime').textContent = character.anime;
+            
+            const rBadge = document.getElementById('sell-modal-rarity');
+            rBadge.textContent = character.rarity;
+            const color = rarityColors[character.rarity] || '#ffffff';
+            rBadge.style.color = color;
+            
+            document.getElementById('sell-price-input').value = '';
+            document.getElementById('sell-modal-overlay').classList.add('active');
+        }
+
+        function closeSellModal() {
+            document.getElementById('sell-modal-overlay').classList.remove('active');
+            selectedCharacter = null;
+        }
+
+        function adjustSellPrice(amount) {
+            const input = document.getElementById('sell-price-input');
+            const current = Number(input.value) || 0;
+            input.value = current + amount;
+        }
+
+        async function executeSell() {
+            const price = Number(document.getElementById('sell-price-input').value);
+            if (!price || price <= 0) {
+                showToast("Please enter a valid price", "error");
+                return;
+            }
+
+            showLoader(true);
+            closeSellModal();
+
+            try {
+                const response = await fetch('/api/sell', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${initData}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        character_id: selectedCharacter.id,
+                        price: price
+                    })
+                });
+
+                const res = await response.json();
+                if (res.success) {
+                    showToast(`Listed successfully! ID: ${res.listing_id}`);
+                    fetchBalance();
+                    switchTab('harem');
+                } else {
+                    showToast(res.error || "Failed to list character", "error");
+                }
+            } catch (err) {
+                showToast("Request error occurred", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        // Buy Operation
+        function buyCharacter(listingId, price, name) {
+            tg.showConfirm(`Confirm purchase of ${name} for ${price.toLocaleString()} coins?`, async (confirmed) => {
+                if (!confirmed) return;
+                
+                showLoader(true);
+                try {
+                    const response = await fetch('/api/buy', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${initData}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ listing_id: listingId })
+                    });
+                    
+                    const res = await response.json();
+                    if (res.success) {
+                        showToast(`Successfully bought ${name}!`);
+                        fetchBalance();
+                        fetchMarketListings();
+                    } else {
+                        showToast(res.error || "Failed to purchase character", "error");
+                    }
+                } catch (err) {
+                    showToast("Request error occurred", "error");
+                } finally {
+                    showLoader(false);
+                }
+            });
+        }
+
+        // Cancel Listing Operation
+        function cancelListing(listingId) {
+            tg.showConfirm(`Are you sure you want to cancel this listing and retrieve your character?`, async (confirmed) => {
+                if (!confirmed) return;
+                
+                showLoader(true);
+                try {
+                    const response = await fetch('/api/cancel', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${initData}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ listing_id: listingId })
+                    });
+                    
+                    const res = await response.json();
+                    if (res.success) {
+                        showToast("Listing cancelled successfully.");
+                        fetchUserListings();
+                    } else {
+                        showToast(res.error || "Failed to cancel listing", "error");
+                    }
+                } catch (err) {
+                    showToast("Request error occurred", "error");
+                } finally {
+                    showLoader(false);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
