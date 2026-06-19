@@ -320,5 +320,27 @@ Admins can approve or reject the request using the provided buttons.
 
 Make sure to reply with an image when using /addchar!
 """
+    },
+    "blackmarket": {
+        "HELP_NAME": "Bʟᴀᴄᴋ Mᴀʀᴋᴇᴛ",
+        "HELP": """
+🛒 **Black Market System** 🛒
+
+**Commands:**
+- `/sell <character_id> <price>` 
+  ┗ List a character from your harem for sale on the market.
+- `/buy <listing_id>` 
+  ┗ Buy a listed character using your coins.
+- `/unsell <listing_id>`
+  ┗ Cancel your listing and retrieve your character.
+- `/my_listings` 
+  ┗ View your active listings on sale.
+- `/bm` (or `/blackmarket`)
+  ┗ Open the Premium Mini WebApp to buy, sell, and cancel!
+
+⚠️ **Rules:**
+- Selling characters removes them from your active harem until cancelled or sold.
+- Once another user buys your character, the transaction is permanent.
+"""
     }
 }
