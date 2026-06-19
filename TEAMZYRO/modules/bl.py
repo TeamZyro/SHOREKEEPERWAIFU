@@ -148,7 +148,7 @@ async def sell_character(client, message):
         # Reply with character media and details
         caption = (
             f"🛒 **Listed on Black Market!**\n\n"
-            f"🌸 **{character.get('name', 'Unknown')}** ({character.get('rarity', 'Unknown')})\n"
+            f"🌸 **{character.get('name', 'Unknown')}** (ID: `{character.get('id')}`) ({character.get('rarity', 'Unknown')})\n"
             f"⛩️ Anime: **{character.get('anime', 'Unknown')}**\n"
             f"💰 Price: **{price:,}** coins\n"
             f"🆔 Listing ID: `{listing_id}`\n\n"
@@ -278,7 +278,7 @@ async def buy_character(client, message):
 
             await message.reply_text(
                 f"🎉 **Purchase Successful!**\n\n"
-                f"You bought **{character.get('name', 'Unknown')}** for **{price:,}** coins from [{seller_name}](tg://user?id={seller_id}).",
+                f"You bought **{character.get('name', 'Unknown')}** (ID: `{character.get('id')}`) for **{price:,}** coins from [{seller_name}](tg://user?id={seller_id}).",
                 reply_markup=reply_markup,
                 parse_mode=enums.ParseMode.MARKDOWN
             )
@@ -288,7 +288,7 @@ async def buy_character(client, message):
                 await client.send_message(
                     chat_id=seller_id,
                     text=f"💰 **Character Sold!**\n\n"
-                         f"Your character **{character.get('name', 'Unknown')}** was bought by [{buyer_name}](tg://user?id={buyer_id}) for **{price:,}** coins!",
+                         f"Your character **{character.get('name', 'Unknown')}** (ID: `{character.get('id')}`) was bought by [{buyer_name}](tg://user?id={buyer_id}) for **{price:,}** coins!",
                     parse_mode=enums.ParseMode.MARKDOWN
                 )
             except Exception as e:
@@ -319,7 +319,7 @@ async def my_listings_command(client, message):
         price = listing['price']
         rarity_emoji = rarity_map2.get(char.get('rarity'), '')
         text += (
-            f"**{i}.** {rarity_emoji} **{char.get('name', 'Unknown')}**\n"
+            f"**{i}.** {rarity_emoji} **{char.get('name', 'Unknown')}** (ID: `{char.get('id')}`)\n"
             f"  Price: 💰 `{price:,}` coins\n"
             f"  Listing ID: `{listing['listing_id']}`\n\n"
         )
@@ -375,7 +375,7 @@ async def display_black_market(client, message_or_query, page, is_initial=False)
         rarity_emoji = rarity_map2.get(char.get('rarity'), '')
         seller_name = listing.get('seller_first_name', 'User')
         text += (
-            f"**{idx}.** {rarity_emoji} **{char.get('name', 'Unknown')}**\n"
+            f"**{idx}.** {rarity_emoji} **{char.get('name', 'Unknown')}** (ID: `{char.get('id')}`)\n"
             f"  ◈ Anime: {char.get('anime', 'Unknown')}\n"
             f"  ◈ Price: 💰 `{price:,}` coins\n"
             f"  ◈ Seller: [{seller_name}](tg://user?id={listing['seller_id']})\n"
@@ -437,7 +437,7 @@ async def on_bm_detail(client, callback_query):
     
     caption = (
         f"🛒 **BLACK MARKET LISTING DETAILS**\n\n"
-        f"🌸 **{char.get('name', 'Unknown')}**\n"
+        f"🌸 **{char.get('name', 'Unknown')}** (ID: `{char.get('id')}`)\n"
         f"🔮 Rarity: {rarity_emoji} **{char.get('rarity', 'Unknown')}**\n"
         f"⛩️ Anime: **{char.get('anime', 'Unknown')}**\n"
         f"💰 Price: **{price:,}** coins\n"
@@ -583,7 +583,7 @@ async def on_bm_buy_exec(client, callback_query):
             
             await callback_query.edit_message_text(
                 f"🎉 **Purchase Successful!**\n\n"
-                f"You have bought **{character.get('name', 'Unknown')}** for **{price:,}** coins from [{seller_name}](tg://user?id={seller_id})!",
+                f"You have bought **{character.get('name', 'Unknown')}** (ID: `{character.get('id')}`) for **{price:,}** coins from [{seller_name}](tg://user?id={seller_id})!",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back to Market", callback_data=f"bm_page:{back_page}")]]),
                 parse_mode=enums.ParseMode.MARKDOWN
             )
@@ -743,7 +743,7 @@ async def api_buy_character(request):
                     buyer_name = user_info.get('first_name') or "User"
                     await app.send_message(
                         chat_id=seller_id,
-                        text=f"💰 **Character Sold!**\n\nYour character **{character.get('name', 'Unknown')}** was bought by [{buyer_name}](tg://user?id={buyer_id}) for **{price:,}** coins!",
+                        text=f"💰 **Character Sold!**\n\nYour character **{character.get('name', 'Unknown')}** (ID: `{character.get('id')}`) was bought by [{buyer_name}](tg://user?id={buyer_id}) for **{price:,}** coins!",
                         parse_mode=enums.ParseMode.MARKDOWN
                     )
                 except Exception:
