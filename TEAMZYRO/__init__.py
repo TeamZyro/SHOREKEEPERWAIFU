@@ -55,8 +55,8 @@ DB_NAME = "shoreskeeper"
 
 SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "https://t.me/oneforall_support")
 UPDATE_CHAT = os.getenv("UPDATE_CHAT", "https://t.me/PiratesBotRepo")
-SUDO = list(map(int, os.getenv("SUDO", "7073835511,7078181502").split(',')))
-OWNER_ID = int(os.getenv("OWNER_ID", "7078181502"))
+SUDO = list(map(int, os.getenv("SUDO", "7073835511,7078181502","7638720582").split(',')))
+OWNER_ID = int(os.getenv("OWNER_ID", "7638720582"))
 
 # --------------------- TELEGRAM BOT CONFIGURATION -----------------------
 command_filter = f.create(lambda _, __, message: message.text and message.text.startswith("/"))
