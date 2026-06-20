@@ -402,5 +402,25 @@ Make sure to reply with an image when using /addchar!
 - Mathematically calculated multipliers based on the number of safe cells opened and mines hidden (with 95% RTP).
 - Hitting 4+ safe cells gives a chance to win a bonus Character drop!
 """
+    },
+    "bank": {
+        "HELP_NAME": "Bᴀɴᴋ Lᴏᴀɴs",
+        "HELP": """
+🏦 **Bank Loan & Collateral System** 🏦
+
+**Commands:**
+- `/bank` 
+  ┗ Open the Bank WebApp to borrow, view active loans, and repay.
+- `/loans`
+  ┗ View details of your current active loans directly inside the chat.
+
+**Loan Terms:**
+- **Collateral (Girbi)**: You can pledge your characters as collateral to secure a loan.
+- **Valuation**: Characters are valued at **60%** of their standard shop rarity price.
+- **Interest**: Flat **10%** interest is charged on the borrow amount.
+- **Repayment**: 5 daily installments (EMIs), auto-debited every 24 hours.
+- **EMI Bounce**: If you lack coins, the EMI bounces, and a penalty of 500 coins is charged.
+- **Asset Seizure**: If a loan has **3 consecutive bounces**, the bank will permanently seize and delete your collateral characters!
+"""
     }
 }
