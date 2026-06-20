@@ -724,6 +724,60 @@
         </div>
     </div>
 
+    <!-- Tab 4: Bank -->
+    <div id="bank-tab" class="tab-content">
+        <!-- Loan Info and Stats -->
+        <div class="bank-header-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(16, 185, 129, 0.05)); border: 1px solid rgba(255,255,255,0.06); padding: 18px; border-radius: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;">
+            <h3 style="display: flex; align-items: center; gap: 8px; color: #a5b4fc; text-align: left;"><span style="font-size: 1.3rem;">🏦</span> Shorekeeper National Bank</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); text-align: left;">Pledge characters as collateral to secure an instant coin loan. Loans are charged a flat 10% interest and split into 5 daily EMIs. 3 consecutive bounces will result in asset foreclosure (collateral seized permanently).</p>
+        </div>
+
+        <!-- Section Switcher -->
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <button class="filter-pill active" id="bank-view-loans-btn" onclick="switchBankSubView('loans')" style="flex: 1; text-align: center; justify-content: center;">Active Loans</button>
+            <button class="filter-pill" id="bank-borrow-btn" onclick="switchBankSubView('borrow')" style="flex: 1; text-align: center; justify-content: center;">Get Loan</button>
+        </div>
+
+        <!-- Subview 1: Active Loans List -->
+        <div id="bank-active-loans-view" class="bank-sub-view" style="display: flex; flex-direction: column; gap: 12px;">
+            <div id="active-loans-list" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                <!-- Active loans dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Subview 2: Borrow Loan Form -->
+        <div id="bank-borrow-view" class="bank-sub-view" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 14px; border-radius: 12px; display: flex; flex-direction: column; gap: 10px;">
+                <h4 style="font-size: 0.9rem; margin-bottom: 6px; text-align: left;">1. Select Collateral Characters</h4>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 12px; text-align: left;">Select characters from your harem to pledge. The loan value is 60% of their rarity shop price.</p>
+                <div class="cards-grid" id="bank-collateral-grid" style="max-height: 350px; overflow-y: auto; padding-right: 4px;">
+                    <!-- Collateral characters generated dynamically -->
+                </div>
+            </div>
+            
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 14px; border-radius: 12px; display: flex; flex-direction: column; gap: 10px; text-align: left;">
+                <h4 style="font-size: 0.9rem;">2. Loan Estimation</h4>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                    <span style="color: var(--text-secondary);">Collateral Pledged:</span>
+                    <span id="loan-est-chars-count" style="font-weight: 600;">0 characters</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                    <span style="color: var(--text-secondary);">Max Borrow Principal:</span>
+                    <span style="font-weight: 700; color: var(--accent-gold);">💰 <span id="loan-est-principal">0</span></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                    <span style="color: var(--text-secondary);">Total Repayable (10% Int):</span>
+                    <span style="font-weight: 600;">💰 <span id="loan-est-repayable">0</span></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                    <span style="color: var(--text-secondary);">Daily EMI (5 days):</span>
+                    <span style="font-weight: 600; color: #a5b4fc;">💰 <span id="loan-est-emi">0</span>/day</span>
+                </div>
+                <button class="action-btn disabled" id="loan-submit-btn" onclick="submitLoanRequest()" style="margin-top: 8px;">Apply for Loan</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modals -->
 
     <!-- Sell Modal -->
@@ -772,6 +826,10 @@
             <span class="tab-icon">📋</span>
             My Listings
         </button>
+        <button class="tab-btn" id="btn-bank" onclick="switchTab('bank')">
+            <span class="tab-icon">🏦</span>
+            Bank
+        </button>
     </div>
 
     <!-- Image Zoom Modal -->
@@ -798,6 +856,34 @@
             rarity: 'All'
         };
         let selectedCharacter = null;
+
+        // Bank System state variables
+        let activeLoans = [];
+        let selectedCollateralIds = new Set();
+        let bankSubView = 'loans';
+        let localCollateralChars = [];
+
+        const RARITY_PRICE = {
+            "⚪️ Common": 1000,
+            "🟣 Rare": 5000,
+            "🟡 Legendary": 15000,
+            "🟢 Medium": 30000,
+            "💮 Special Edition": 25000,
+            "🔮 Limited Edition": 40000,
+            "💸 Premium Edition": 30000,
+            "🌤 Summer": 35000,
+            "🎐 Celestial": 45000,
+            "❄️ Winter": 20000,
+            "💝 Valentine": 18000,
+            "🎃 Halloween": 16000,
+            "🎄 Christmas Special": 22000,
+            "🪐 Omniversal": 80000,
+            "🎭 Cosplay Master 🎭": 70000,
+            "🧧 Events": 25000,
+            "🍑 Echhi": 30000,
+            "🎗️ AMV Edition": 27000,
+            "🌟 Luminous": 50000,
+        };
 
         // Emojis mapping for rarity coloring
         const rarityColors = {
@@ -871,13 +957,14 @@
             const btnMap = {
                 'market': 'btn-market',
                 'harem': 'btn-harem',
-                'listings': 'btn-listings'
+                'listings': 'btn-listings',
+                'bank': 'btn-bank'
             };
             document.getElementById(btnMap[tabId]).classList.add('active');
 
             // Filters display logic
             const filterContainer = document.getElementById('filter-container');
-            if (tabId === 'listings') {
+            if (tabId === 'listings' || tabId === 'bank') {
                 filterContainer.style.display = 'none';
             } else {
                 filterContainer.style.display = 'flex';
@@ -887,6 +974,268 @@
             if (tabId === 'market') fetchMarketListings();
             if (tabId === 'harem') fetchHaremCharacters();
             if (tabId === 'listings') fetchUserListings();
+            if (tabId === 'bank') fetchBankDetails();
+        }
+
+        // Bank System UI functions
+        async function fetchBankDetails() {
+            showLoader(true);
+            try {
+                const response = await fetch('/api/bank/loans', {
+                    headers: { 'Authorization': `Bearer ${initData}` }
+                });
+                const data = await response.json();
+                activeLoans = data.loans || [];
+                renderActiveLoans();
+
+                const haremResponse = await fetch('/api/harem', {
+                    headers: { 'Authorization': `Bearer ${initData}` }
+                });
+                const haremData = await haremResponse.json();
+                renderCollateralCharacters(haremData.characters || []);
+                
+                selectedCollateralIds.clear();
+                updateLoanEstimation();
+                switchBankSubView('loans');
+            } catch (err) {
+                showToast("Failed to load bank data", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function switchBankSubView(view) {
+            bankSubView = view;
+            document.querySelectorAll('.bank-sub-view').forEach(el => el.style.display = 'none');
+            document.getElementById(`bank-${view}-view`).style.display = 'flex';
+            
+            document.getElementById('bank-view-loans-btn').classList.toggle('active', view === 'loans');
+            document.getElementById('bank-borrow-btn').classList.toggle('active', view === 'borrow');
+        }
+
+        function renderActiveLoans() {
+            const list = document.getElementById('active-loans-list');
+            list.innerHTML = '';
+            
+            const active = activeLoans.filter(l => l.status === 'active');
+            
+            if (active.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state" style="padding: 24px 10px;">
+                        <span style="font-size: 2rem;">💳</span>
+                        <p style="font-size: 0.85rem;">You do not have any active loans.</p>
+                        <button class="action-btn" onclick="switchBankSubView('borrow')" style="max-width: 180px; margin-top: 10px;">Get a Loan</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            active.forEach(loan => {
+                const rem = loan.total_repayable - loan.amount_paid;
+                const nextDue = new Date(loan.next_emi_due).toLocaleString();
+                const charNames = loan.collateral_characters.map(c => c.name).join(', ');
+                
+                const card = document.createElement('div');
+                card.style.background = 'var(--card-bg)';
+                card.style.border = '1px solid var(--border-color)';
+                card.style.borderRadius = '14px';
+                card.style.padding = '14px';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.gap = '8px';
+                card.style.textAlign = 'left';
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px;">
+                        <span style="font-weight: 700; color: #a5b4fc; font-size: 0.85rem;">Loan ID: ${loan.loan_id}</span>
+                        <span class="rarity-badge" style="position: static; font-size: 0.65rem; padding: 2px 6px; border-color: var(--success-color); color: var(--success-color);">Active</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 0.8rem;">
+                        <div><span style="color: var(--text-secondary);">Borrowed:</span> <span style="font-weight: 600;">💰 ${Number(loan.principal).toLocaleString()}</span></div>
+                        <div><span style="color: var(--text-secondary);">Remaining Debt:</span> <span style="font-weight: 700; color: var(--accent-gold);">💰 ${Number(rem).toLocaleString()}</span></div>
+                        <div><span style="color: var(--text-secondary);">Daily EMI:</span> <span style="font-weight: 600;">💰 ${Number(loan.emi_amount).toLocaleString()}</span></div>
+                        <div><span style="color: var(--text-secondary);">EMIs Left:</span> <span style="font-weight: 600;">${loan.emis_remaining}/${loan.emis_total}</span></div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.3;">
+                        <div>⏱ **Next Auto-Debit:** ${nextDue}</div>
+                        <div>⚠️ **Bounces:** <span style="color: ${loan.bounced_count > 0 ? 'var(--danger-color)' : 'var(--text-secondary)'}; font-weight: 600;">${loan.bounced_count}/3</span></div>
+                        <div style="margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🌸 **Collateral:** ${charNames}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                        <button class="action-btn secondary" onclick="repayLoan('${loan.loan_id}', 'emi', ${loan.emi_amount})" style="flex: 1; padding: 6px; font-size: 0.75rem; margin-top: 0;">Pay EMI</button>
+                        <button class="action-btn" onclick="repayLoan('${loan.loan_id}', 'full', ${rem})" style="flex: 1; padding: 6px; font-size: 0.75rem; margin-top: 0;">Repay Full</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function renderCollateralCharacters(characters) {
+            const grid = document.getElementById('bank-collateral-grid');
+            grid.innerHTML = '';
+            
+            localCollateralChars = characters;
+            
+            if (characters.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: span 2; padding: 20px;">
+                        <span style="font-size: 1.8rem;">🎒</span>
+                        <p style="font-size: 0.8rem;">No characters available in your harem to pledge.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            characters.forEach((char, idx) => {
+                const color = rarityColors[char.rarity] || '#ffffff';
+                const estValue = Math.floor((RARITY_PRICE[char.rarity] || 1000) * 0.60);
+                const isSelected = selectedCollateralIds.has(idx);
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.border = isSelected ? '2px solid var(--primary-color)' : '1px solid var(--border-color)';
+                card.style.opacity = isSelected ? '0.9' : '1';
+                
+                card.innerHTML = `
+                    <div class="card-media" style="height: 100px;">
+                        ${char.vid_url ? `<video src="${char.vid_url}" autoplay loop muted playsinline></video>` : `<img src="${char.img_url || 'https://envs.sh/6Y3.jpg'}" alt="char">`}
+                        <span class="rarity-badge" style="border-color: ${color}; color: ${color}; font-size: 0.6rem; padding: 1px 4px; top: 4px; left: 4px;">${char.rarity}</span>
+                        <div style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; color: var(--accent-gold);">
+                            💰 ${estValue.toLocaleString()}
+                        </div>
+                    </div>
+                    <div class="card-info" style="padding: 6px; gap: 2px; text-align: left;">
+                        <span class="char-name" style="font-size: 0.75rem;">${char.name}</span>
+                        <span class="char-anime" style="font-size: 0.65rem; margin-bottom: 0;">${char.anime}</span>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+                            <span style="font-size: 0.65rem; color: var(--text-secondary);">Select</span>
+                            <input type="checkbox" id="chk-collateral-${idx}" ${isSelected ? 'checked' : ''} style="transform: scale(1.1); pointer-events: none;">
+                        </div>
+                    </div>
+                `;
+                
+                card.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleCollateralSelection(idx);
+                };
+                grid.appendChild(card);
+            });
+        }
+
+        function toggleCollateralSelection(idx) {
+            if (selectedCollateralIds.has(idx)) {
+                selectedCollateralIds.delete(idx);
+            } else {
+                selectedCollateralIds.add(idx);
+            }
+            renderCollateralCharacters(localCollateralChars);
+            updateLoanEstimation();
+        }
+
+        function updateLoanEstimation() {
+            let totalPrincipal = 0;
+            selectedCollateralIds.forEach(idx => {
+                const char = localCollateralChars[idx];
+                if (char) {
+                    const price = RARITY_PRICE[char.rarity] || 1000;
+                    totalPrincipal += Math.floor(price * 0.60);
+                }
+            });
+            
+            const totalRepayable = Math.floor(totalPrincipal * 1.10);
+            const dailyEmi = Math.ceil(totalRepayable / 5);
+            
+            document.getElementById('loan-est-chars-count').textContent = `${selectedCollateralIds.size} characters`;
+            document.getElementById('loan-est-principal').textContent = totalPrincipal.toLocaleString();
+            document.getElementById('loan-est-repayable').textContent = totalRepayable.toLocaleString();
+            document.getElementById('loan-est-emi').textContent = dailyEmi.toLocaleString();
+            
+            const submitBtn = document.getElementById('loan-submit-btn');
+            if (selectedCollateralIds.size > 0) {
+                submitBtn.classList.remove('disabled');
+            } else {
+                submitBtn.classList.add('disabled');
+            }
+        }
+
+        async function submitLoanRequest() {
+            if (selectedCollateralIds.size === 0) return;
+            
+            const selectedIds = [];
+            selectedCollateralIds.forEach(idx => {
+                const char = localCollateralChars[idx];
+                if (char && char.id) {
+                    selectedIds.push(char.id);
+                }
+            });
+            
+            tg.showConfirm(`Pledge ${selectedIds.length} characters as collateral for a loan of 💰 ${Number(document.getElementById('loan-est-principal').textContent.replace(/,/g, '')).toLocaleString()} coins?`, async (confirmed) => {
+                if (!confirmed) return;
+                
+                showLoader(true);
+                try {
+                    const response = await fetch('/api/bank/borrow', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${initData}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ character_ids: selectedIds })
+                    });
+                    
+                    const res = await response.json();
+                    if (res.success) {
+                        showToast(`Loan approved! Borrowed ${res.principal.toLocaleString()} coins.`);
+                        fetchBalance();
+                        fetchBankDetails();
+                    } else {
+                        showToast(res.error || "Failed to secure loan", "error");
+                    }
+                } catch (err) {
+                    showToast("Request error occurred", "error");
+                } finally {
+                    showLoader(false);
+                }
+            });
+        }
+
+        async function repayLoan(loanId, type, amount) {
+            const desc = type === 'full' ? 'Full repayment' : 'Manual EMI payment';
+            tg.showConfirm(`Confirm ${desc} of 💰 ${amount.toLocaleString()} coins for Loan ${loanId}?`, async (confirmed) => {
+                if (!confirmed) return;
+                
+                showLoader(true);
+                try {
+                    const response = await fetch('/api/bank/repay', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${initData}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            loan_id: loanId,
+                            repay_type: type
+                        })
+                    });
+                    
+                    const res = await response.json();
+                    if (res.success) {
+                        if (res.repaid_full) {
+                            showToast("Loan fully repaid! Collateral returned.");
+                        } else {
+                            showToast(`Paid EMI of ${res.amount_paid.toLocaleString()} coins.`);
+                        }
+                        fetchBalance();
+                        fetchBankDetails();
+                    } else {
+                        showToast(res.error || "Payment failed", "error");
+                    }
+                } catch (err) {
+                    showToast("Request error occurred", "error");
+                } finally {
+                    showLoader(false);
+                }
+            });
         }
 
         // Dynamic API loaders
