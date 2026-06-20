@@ -6,7 +6,8 @@ import urllib.parse
 import json
 import hmac
 import hashlib
-from datetime import datetime
+import math
+from datetime import datetime, timedelta
 from aiohttp import web
 from bson import ObjectId
 
@@ -790,6 +791,417 @@ async def api_cancel_listing(request):
         traceback.print_exc()
         return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
 
+
+
+# ----------------- Bank System APIs & Background Tasks -----------------
+
+# Rarity Pricing for bank collateral valuation (LTV = 60%)
+RARITY_PRICE = {
+    "⚪️ Common": 1000,
+    "🟣 Rare": 5000,
+    "🟡 Legendary": 15000,
+    "🟢 Medium": 30000,
+    "💮 Special Edition": 25000,
+    "🔮 Limited Edition": 40000,
+    "💸 Premium Edition": 30000,
+    "🌤 Summer": 35000,
+    "🎐 Celestial": 45000,
+    "❄️ Winter": 20000,
+    "💝 Valentine": 18000,
+    "🎃 Halloween": 16000,
+    "🎄 Christmas Special": 22000,
+    "🪐 Omniversal": 80000,
+    "🎭 Cosplay Master 🎭": 70000,
+    "🧧 Events": 25000,
+    "🍑 Echhi": 30000,
+    "🎗️ AMV Edition": 27000,
+    "🌟 Luminous": 50000,
+}
+
+async def api_get_loans(request):
+    try:
+        if request.method == "OPTIONS":
+            return api_options_handler(request)
+        
+        user_info = await get_authed_user(request)
+        if not user_info:
+            return mongo_json_response({"error": "Unauthorized"}, status=401)
+            
+        user_id = user_info['id']
+        loans = await db['bank_loans'].find({"user_id": user_id}).sort("created_at", -1).to_list(length=100)
+        return mongo_json_response({"loans": loans})
+    except Exception as e:
+        traceback.print_exc()
+        return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
+
+async def api_borrow_loan(request):
+    try:
+        if request.method == "OPTIONS":
+            return api_options_handler(request)
+            
+        user_info = await get_authed_user(request)
+        if not user_info:
+            return mongo_json_response({"error": "Unauthorized"}, status=401)
+            
+        user_id = user_info['id']
+        try:
+            body = await request.json()
+            character_ids = body.get('character_ids', [])
+            if not character_ids:
+                return mongo_json_response({"error": "No characters selected as collateral"}, status=400)
+        except Exception:
+            return mongo_json_response({"error": "Invalid request body"}, status=400)
+            
+        async with get_user_lock(user_id):
+            active_loans_count = await db['bank_loans'].count_documents({"user_id": user_id, "status": "active"})
+            if active_loans_count >= 3:
+                return mongo_json_response({"error": "You already have 3 active loans. Please clear existing loans first."}, status=400)
+
+            user = await user_collection.find_one({'id': user_id})
+            if not user or 'characters' not in user:
+                return mongo_json_response({"error": "No characters owned"}, status=400)
+                
+            harem = user['characters']
+            collateral_chars = []
+            
+            for cid in character_ids:
+                char_idx = next((i for i, c in enumerate(harem) if str(c.get('id')) == str(cid)), -1)
+                if char_idx == -1:
+                    return mongo_json_response({"error": f"Character with ID {cid} not found in your harem"}, status=400)
+                collateral_chars.append(harem.pop(char_idx))
+                
+            total_val = 0
+            for char in collateral_chars:
+                rarity = char.get('rarity', '⚪️ Common')
+                price = RARITY_PRICE.get(rarity, 1000)
+                total_val += int(price * 0.60)
+                
+            if total_val <= 0:
+                return mongo_json_response({"error": "Selected characters have zero collateral value"}, status=400)
+                
+            principal = total_val
+            total_repayable = int(principal * 1.10)
+            emi_amount = int(math.ceil(total_repayable / 5))
+            
+            while True:
+                loan_id = str(random.randint(100000, 999999))
+                existing = await db['bank_loans'].find_one({"loan_id": loan_id})
+                if not existing:
+                    break
+                    
+            loan = {
+                "loan_id": loan_id,
+                "user_id": user_id,
+                "principal": principal,
+                "total_repayable": total_repayable,
+                "amount_paid": 0,
+                "emis_total": 5,
+                "emis_remaining": 5,
+                "emi_amount": emi_amount,
+                "next_emi_due": datetime.utcnow() + timedelta(days=1),
+                "collateral_characters": collateral_chars,
+                "bounced_count": 0,
+                "status": "active",
+                "created_at": datetime.utcnow()
+            }
+            
+            await user_collection.update_one(
+                {'id': user_id},
+                {
+                    '$inc': {'balance': principal},
+                    '$set': {'characters': harem}
+                }
+            )
+            
+            await db['bank_loans'].insert_one(loan)
+            
+            char_names = ", ".join([c.get('name', 'Unknown') for c in collateral_chars])
+            try:
+                await app.send_message(
+                    chat_id=user_id,
+                    text=f"🏦 **Loan Approved!**\n\n"
+                         f"You successfully borrowed **{principal:,} coins** from the bank by pledging:\n"
+                         f"🌸 **{char_names}** as collateral.\n\n"
+                         f"• **Loan ID:** `{loan_id}`\n"
+                         f"• **Total Repayable:** 💰 `{total_repayable:,}` coins\n"
+                         f"• **Daily EMI:** 💰 `{emi_amount:,}` coins\n"
+                         f"• **Next Due Date:** {(datetime.utcnow() + timedelta(days=1)).strftime('%Y-%m-%d %H:%M UTC')}\n\n"
+                         f"⚠️ *Please ensure you have enough balance every day to avoid EMI bounces.*",
+                    parse_mode=enums.ParseMode.MARKDOWN
+                )
+            except Exception as e:
+                print(f"Failed to notify user: {e}")
+                
+            return mongo_json_response({"success": True, "loan_id": loan_id, "principal": principal})
+    except Exception as e:
+        traceback.print_exc()
+        return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
+
+async def api_repay_loan(request):
+    try:
+        if request.method == "OPTIONS":
+            return api_options_handler(request)
+            
+        user_info = await get_authed_user(request)
+        if not user_info:
+            return mongo_json_response({"error": "Unauthorized"}, status=401)
+            
+        user_id = user_info['id']
+        try:
+            body = await request.json()
+            loan_id = body.get('loan_id')
+            repay_type = body.get('repay_type', 'full')
+            if not loan_id:
+                return mongo_json_response({"error": "Invalid loan_id"}, status=400)
+        except Exception:
+            return mongo_json_response({"error": "Invalid request body"}, status=400)
+            
+        async with get_user_lock(user_id):
+            loan = await db['bank_loans'].find_one({"loan_id": loan_id, "user_id": user_id, "status": "active"})
+            if not loan:
+                return mongo_json_response({"error": "Active loan not found"}, status=400)
+                
+            user = await user_collection.find_one({'id': user_id})
+            balance = user.get('balance', 0) if user else 0
+            
+            debt_remaining = loan['total_repayable'] - loan['amount_paid']
+            
+            if repay_type == 'full':
+                repay_amount = debt_remaining
+            elif repay_type == 'emi':
+                repay_amount = min(loan['emi_amount'], debt_remaining)
+            else:
+                return mongo_json_response({"error": "Invalid repay_type"}, status=400)
+                
+            if balance < repay_amount:
+                return mongo_json_response({"error": f"Insufficient balance. You need {repay_amount:,} coins, but only have {balance:,}."}, status=400)
+                
+            new_balance = balance - repay_amount
+            new_amount_paid = loan['amount_paid'] + repay_amount
+            
+            await user_collection.update_one({'id': user_id}, {'$set': {'balance': new_balance}})
+            
+            is_completed = (new_amount_paid >= loan['total_repayable']) or (repay_type == 'full')
+            
+            if is_completed:
+                collateral_chars = loan.get('collateral_characters', [])
+                await user_collection.update_one(
+                    {'id': user_id},
+                    {'$push': {'characters': {'$each': collateral_chars}}}
+                )
+                
+                await db['bank_loans'].update_one(
+                    {"loan_id": loan_id},
+                    {
+                        '$set': {
+                            'amount_paid': loan['total_repayable'],
+                            'emis_remaining': 0,
+                            'status': 'repaid'
+                        }
+                    }
+                )
+                
+                char_names = ", ".join([c.get('name', 'Unknown') for c in collateral_chars])
+                try:
+                    await app.send_message(
+                        chat_id=user_id,
+                        text=f"🎉 **Loan Fully Repaid!**\n\n"
+                             f"Your loan `{loan_id}` of **{loan['principal']:,} coins** is fully paid off.\n"
+                             f"The bank has returned your collateral characters to your harem:\n"
+                             f"🌸 **{char_names}**",
+                        parse_mode=enums.ParseMode.MARKDOWN
+                    )
+                except Exception as e:
+                    print(f"Failed to notify user: {e}")
+                    
+                return mongo_json_response({"success": True, "repaid_full": True})
+            else:
+                new_emis_remaining = max(0, loan['emis_remaining'] - 1)
+                new_next_due = loan['next_emi_due'] + timedelta(days=1)
+                
+                await db['bank_loans'].update_one(
+                    {"loan_id": loan_id},
+                    {
+                        '$set': {
+                            'amount_paid': new_amount_paid,
+                            'emis_remaining': new_emis_remaining,
+                            'next_emi_due': new_next_due,
+                            'bounced_count': 0
+                        }
+                    }
+                )
+                
+                try:
+                    await app.send_message(
+                        chat_id=user_id,
+                        text=f"💸 **EMI Payment Received!**\n\n"
+                             f"You paid an EMI of **{repay_amount:,} coins** for loan `{loan_id}`.\n"
+                             f"• **Remaining Debt:** 💰 `{loan['total_repayable'] - new_amount_paid:,}` coins\n"
+                             f"• **EMIs Remaining:** `{new_emis_remaining}`\n"
+                             f"• **Next Due:** {new_next_due.strftime('%Y-%m-%d %H:%M UTC')}",
+                        parse_mode=enums.ParseMode.MARKDOWN
+                    )
+                except Exception as e:
+                    print(f"Failed to notify user: {e}")
+                    
+                return mongo_json_response({"success": True, "repaid_full": False, "amount_paid": repay_amount})
+    except Exception as e:
+        traceback.print_exc()
+        return mongo_json_response({"error": f"Server Error: {str(e)}"}, status=500)
+
+async def run_bank_emi_loop():
+    print("=== Bank EMI Background Task Started ===")
+    while True:
+        try:
+            await process_bank_emis()
+        except Exception as e:
+            print(f"Error in process_bank_emis loop: {e}")
+            traceback.print_exc()
+        await asyncio.sleep(60)
+
+async def process_bank_emis():
+    now = datetime.utcnow()
+    active_loans = await db['bank_loans'].find({"status": "active", "next_emi_due": {"$lte": now}}).to_list(length=100)
+    
+    for loan in active_loans:
+        user_id = loan['user_id']
+        loan_id = loan['loan_id']
+        
+        async with get_user_lock(user_id):
+            current_loan = await db['bank_loans'].find_one({"loan_id": loan_id, "status": "active"})
+            if not current_loan or current_loan['next_emi_due'] > now:
+                continue
+                
+            user = await user_collection.find_one({'id': user_id})
+            balance = user.get('balance', 0) if user else 0
+            
+            emi_amount = current_loan['emi_amount']
+            debt_remaining = current_loan['total_repayable'] - current_loan['amount_paid']
+            charge_amount = min(emi_amount, debt_remaining)
+            
+            if balance >= charge_amount:
+                new_balance = balance - charge_amount
+                new_amount_paid = current_loan['amount_paid'] + charge_amount
+                new_emis_remaining = max(0, current_loan['emis_remaining'] - 1)
+                
+                await user_collection.update_one({'id': user_id}, {'$set': {'balance': new_balance}})
+                
+                is_completed = (new_amount_paid >= current_loan['total_repayable']) or (new_emis_remaining == 0)
+                
+                if is_completed:
+                    collateral_chars = current_loan.get('collateral_characters', [])
+                    await user_collection.update_one(
+                        {'id': user_id},
+                        {'$push': {'characters': {'$each': collateral_chars}}}
+                    )
+                    
+                    await db['bank_loans'].update_one(
+                        {"loan_id": loan_id},
+                        {
+                            '$set': {
+                                'amount_paid': current_loan['total_repayable'],
+                                'emis_remaining': 0,
+                                'status': 'repaid'
+                            }
+                        }
+                    )
+                    
+                    char_names = ", ".join([c.get('name', 'Unknown') for c in collateral_chars])
+                    try:
+                        await app.send_message(
+                            chat_id=user_id,
+                            text=f"🎉 **Loan Auto-Repaid!**\n\n"
+                                 f"Your loan `{loan_id}` of **{current_loan['principal']:,} coins** is fully paid off through auto-debit.\n"
+                                 f"The bank has returned your collateral characters to your harem:\n"
+                                 f"🌸 **{char_names}**",
+                            parse_mode=enums.ParseMode.MARKDOWN
+                        )
+                    except Exception as e:
+                        pass
+                else:
+                    new_next_due = current_loan['next_emi_due'] + timedelta(days=1)
+                    await db['bank_loans'].update_one(
+                        {"loan_id": loan_id},
+                        {
+                            '$set': {
+                                'amount_paid': new_amount_paid,
+                                'emis_remaining': new_emis_remaining,
+                                'next_emi_due': new_next_due,
+                                'bounced_count': 0
+                            }
+                        }
+                    )
+                    
+                    try:
+                        await app.send_message(
+                            chat_id=user_id,
+                            text=f"💸 **EMI Auto-Debited!**\n\n"
+                                 f"An EMI of **{charge_amount:,} coins** has been successfully debited from your balance for loan `{loan_id}`.\n"
+                                 f"• **Remaining Debt:** 💰 `{current_loan['total_repayable'] - new_amount_paid:,}` coins\n"
+                                 f"• **EMIs Remaining:** `{new_emis_remaining}`\n"
+                                 f"• **Next Due:** {new_next_due.strftime('%Y-%m-%d %H:%M UTC')}",
+                            parse_mode=enums.ParseMode.MARKDOWN
+                        )
+                    except Exception as e:
+                        pass
+            else:
+                new_bounces = current_loan['bounced_count'] + 1
+                penalty = 500
+                new_balance = max(0, balance - penalty)
+                
+                await user_collection.update_one({'id': user_id}, {'$set': {'balance': new_balance}})
+                
+                if new_bounces >= 3:
+                    collateral_chars = current_loan.get('collateral_characters', [])
+                    await db['bank_loans'].update_one(
+                        {"loan_id": loan_id},
+                        {
+                            '$set': {
+                                'status': 'defaulted',
+                                'bounced_count': new_bounces
+                            }
+                        }
+                    )
+                    
+                    char_names = ", ".join([c.get('name', 'Unknown') for c in collateral_chars])
+                    try:
+                        await app.send_message(
+                            chat_id=user_id,
+                            text=f"🚨 **LOAN DEFAULT & SEIZURE!** 🚨\n\n"
+                                 f"Your loan `{loan_id}` has defaulted after **3 consecutive EMI bounces**.\n\n"
+                                 f"The bank has **permanently seized** your collateral characters:\n"
+                                 f"🌸 **{char_names}**\n\n"
+                                 f"These characters are no longer in the bank and cannot be retrieved.",
+                            parse_mode=enums.ParseMode.MARKDOWN
+                        )
+                    except Exception as e:
+                        pass
+                else:
+                    new_next_due = current_loan['next_emi_due'] + timedelta(days=1)
+                    await db['bank_loans'].update_one(
+                        {"loan_id": loan_id},
+                        {
+                            '$set': {
+                                'bounced_count': new_bounces,
+                                'next_emi_due': new_next_due
+                            }
+                        }
+                    )
+                    
+                    try:
+                        await app.send_message(
+                            chat_id=user_id,
+                            text=f"⚠️ **EMI Auto-Debit BOUNCED!** ⚠️\n\n"
+                                 f"Your daily EMI of **{charge_amount:,} coins** for loan `{loan_id}` bounced due to insufficient balance (Current: {balance:,} coins).\n\n"
+                                 f"• **Bounce Penalty Charged:** 💰 `{penalty}` coins\n"
+                                 f"• **Consecutive Bounces:** `{new_bounces}/3`\n"
+                                 f"• **Next Retry:** {new_next_due.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
+                                 f"🚨 *WARNING: If this bounces 3 times, your collateral will be permanently seized!*",
+                            parse_mode=enums.ParseMode.MARKDOWN
+                        )
+                    except Exception as e:
+                        pass
+
 # ----------------- Auth Helpers -----------------
 
 async def get_authed_user(request):
@@ -830,6 +1242,9 @@ async def start_webapp_server():
     app_web.router.add_options('/api/sell', api_options_handler)
     app_web.router.add_options('/api/buy', api_options_handler)
     app_web.router.add_options('/api/cancel', api_options_handler)
+    app_web.router.add_options('/api/bank/loans', api_options_handler)
+    app_web.router.add_options('/api/bank/borrow', api_options_handler)
+    app_web.router.add_options('/api/bank/repay', api_options_handler)
     
     app_web.router.add_get('/', serve_webapp_html)
     app_web.router.add_get('/blackmarket', serve_webapp_html)
@@ -839,6 +1254,9 @@ async def start_webapp_server():
     app_web.router.add_post('/api/sell', api_sell_character)
     app_web.router.add_post('/api/buy', api_buy_character)
     app_web.router.add_post('/api/cancel', api_cancel_listing)
+    app_web.router.add_get('/api/bank/loans', api_get_loans)
+    app_web.router.add_post('/api/bank/borrow', api_borrow_loan)
+    app_web.router.add_post('/api/bank/repay', api_repay_loan)
     
     runner = web.AppRunner(app_web)
     await runner.setup()
@@ -853,5 +1271,6 @@ async def web_server_startup(app_ptb):
     if original_post_init:
         await original_post_init(app_ptb)
     await start_webapp_server()
+    asyncio.create_task(run_bank_emi_loop())
 
 application.post_init = web_server_startup
