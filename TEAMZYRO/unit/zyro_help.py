@@ -295,7 +295,9 @@ Each result includes:
     "new_char": {
         "HELP_NAME": "Nᴇᴡ Cʜᴀʀ",
         "HELP": """
-➤ /addchar character-name anime-name - Upload a character with an image.
+➤ /addchar character-name anime-name - Upload a character request with an image.
+➤ /upload (or /gupload) character-name anime-name rarity-number - Upload and add a character directly (Admins only).
+➤ /server - Change the upload server (ImgBB or Catbox) for your uploads.
 
 Admins can approve or reject the request using the provided buttons.
 
@@ -318,7 +320,7 @@ Admins can approve or reject the request using the provided buttons.
 - Approve a pending character request.
 - Cancel an upload request.
 
-Make sure to reply with an image when using /addchar!
+Make sure to reply with an image when using /addchar or /upload!
 """
     },
     "blackmarket": {
@@ -421,6 +423,33 @@ Make sure to reply with an image when using /addchar!
 - **Repayment**: 5 daily installments (EMIs), auto-debited every 24 hours.
 - **EMI Bounce**: If you lack coins, the EMI bounces, and a penalty of 500 coins is charged.
 - **Asset Seizure**: If a loan has **3 consecutive bounces**, the bank will permanently seize and delete your collateral characters!
+"""
+    },
+    "ox": {
+        "HELP_NAME": "Tɪᴄ Tᴀᴄ Tᴏᴇ",
+        "HELP": """
+🎮 **Tic Tac Toe (O/X) Betting** 🎮
+
+**Commands:**
+- `/ox <bet>` 
+  ┗ Host a new game lobby with the specified bet.
+- `/oxstats` 
+  ┗ Check your Tic Tac Toe statistics.
+- `/oxstats @username` (or user_id)
+  ┗ Check another player's statistics.
+- `/oxtop` 
+  ┗ View the leaderboard of top players.
+- `/oxactive` 
+  ┗ See the number of active games in progress.
+
+**Game Rules:**
+1. **Lobby & Join**: Host sets a bet (100 to 100,000 coins). Another player clicks **Join Game** to match the bet.
+2. **Setup**: Symbols (❌/⭕) and first turn are assigned randomly.
+3. **Turn Rules**: You have **2 minutes** to make a move on the 3x3 board. Clicking empty cells updates the grid and switches turns.
+4. **Win Condition**: Form a line of 3 symbols horizontally, vertically, or diagonally to win the entire prize pool (2x bet).
+5. **Draw Condition**: If all cells are filled with no winner, both players are fully refunded.
+6. **AFK Protection**: Exceeding the 2-minute timer on your turn triggers an automatic loss, awarding the win to your opponent.
+7. **Auto-Cancellation**: If a lobby remains empty for **5 minutes**, it is cancelled automatically and the host is refunded.
 """
     }
 }
