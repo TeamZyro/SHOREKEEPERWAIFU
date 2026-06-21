@@ -80,9 +80,45 @@ def upload_to_catbox(file_path=None, file_url=None, expires=None, secret=None):
             files={"fileToUpload": file}
         )
         if response.status_code == 200 and response.text.startswith("https"):
-            return response.text
+            return response.text.strip()
         else:
             raise Exception(f"Error uploading to Catbox: {response.text}")
+
+
+IMGBB_API_KEY = os.getenv("IMGBB_API_KEY", "7ff491f6f7076787ff4e5dab51b502a9")
+
+def upload_to_imgbb(file_path: str) -> str:
+    if not os.path.exists(file_path):
+        raise Exception(f"Invalid file path: {file_path}")
+    url = "https://api.imgbb.com/1/upload"
+    with open(file_path, "rb") as f:
+        response = requests.post(
+            url,
+            data={"key": IMGBB_API_KEY},
+            files={"image": f}
+        )
+    if response.status_code == 200:
+        data = response.json()
+        return data["data"]["url"]
+    else:
+        raise Exception(f"HTTP Error: {response.status_code} | {response.text}")
+
+
+server_collection = db["user_upload_servers"]
+
+async def get_user_server(user_id: int) -> str:
+    doc = await server_collection.find_one({"user_id": user_id})
+    if doc:
+        return doc.get("server", "imgbb")
+    return "imgbb"
+
+async def set_user_server(user_id: int, server: str):
+    await server_collection.update_one(
+        {"user_id": user_id},
+        {"$set": {"server": server}},
+        upsert=True
+    )
+
 
 @ZYRO.on_message(filters.command(["find"]))
 @require_power("add_character")
@@ -91,15 +127,57 @@ async def ul(client, message):
     await message.reply_text(
                 f"new id {available_id}"
             )
-    
+
+
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+@ZYRO.on_message(filters.command("server"))
+@require_power("add_character")
+async def select_server(client, message):
+    current_server = await get_user_server(message.from_user.id)
+    buttons = InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("ImgBB ✅" if current_server == "imgbb" else "ImgBB", callback_data="set_server_imgbb"),
+            InlineKeyboardButton("Catbox ✅" if current_server == "catbox" else "Catbox", callback_data="set_server_catbox")
+        ]]
+    )
+    await message.reply(f"Your current upload server is **{current_server.upper()}**.\nSelect upload server:", reply_markup=buttons)
+
+
+@ZYRO.on_callback_query(filters.regex(r"^set_server_"))
+@require_power("add_character")
+async def server_callback(client, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data
+    if data == "set_server_imgbb":
+        await set_user_server(user_id, "imgbb")
+        buttons = InlineKeyboardMarkup(
+            [[
+                InlineKeyboardButton("ImgBB ✅", callback_data="set_server_imgbb"),
+                InlineKeyboardButton("Catbox", callback_data="set_server_catbox")
+            ]]
+        )
+        await callback_query.edit_message_text("Upload server set to ImgBB ✅", reply_markup=buttons)
+        await callback_query.answer("Upload server set to ImgBB ✅", show_alert=True)
+    elif data == "set_server_catbox":
+        await set_user_server(user_id, "catbox")
+        buttons = InlineKeyboardMarkup(
+            [[
+                InlineKeyboardButton("ImgBB", callback_data="set_server_imgbb"),
+                InlineKeyboardButton("Catbox ✅", callback_data="set_server_catbox")
+            ]]
+        )
+        await callback_query.edit_message_text("Upload server set to Catbox ✅", reply_markup=buttons)
+        await callback_query.answer("Upload server set to Catbox ✅", show_alert=True)
+
 
 import asyncio
 
 upload_lock = asyncio.Lock()  # Lock for handling concurrent uploads
 
-@ZYRO.on_message(filters.command(["gupload"]))
+@ZYRO.on_message(filters.command(["gupload", "u", "upload"]))
 @require_power("add_character")
-async def ul(client, message):
+async def ul_main(client, message):
     global upload_lock
 
     if upload_lock.locked():
@@ -138,17 +216,40 @@ async def ul(client, message):
             processing_message = await message.reply("<ᴘʀᴏᴄᴇꜱꜱɪɴɢ>....")
             path = await reply.download()
             try:
-                # Upload image or video to Catbox
-                catbox_url = upload_to_catbox(path)
+                # Upload image or video using user's selected server
+                server = await get_user_server(message.from_user.id)
+                
+                # Check if it's a document/video and fallback to catbox if user has imgbb selected
+                is_video = bool(reply.video)
+                is_doc_non_image = False
+                if reply.document:
+                    mime = getattr(reply.document, "mime_type", "") or ""
+                    if not mime.startswith("image/"):
+                        is_doc_non_image = True
+
+                if server == "imgbb" and not is_video and not is_doc_non_image:
+                    try:
+                        file_url = upload_to_imgbb(path)
+                    except Exception as e:
+                        # Fallback to catbox
+                        file_url = upload_to_catbox(path)
+                else:
+                    file_url = upload_to_catbox(path)
 
                 # Update character with the image or video URL
                 if reply.photo or reply.document:
-                    character['img_url'] = catbox_url
+                    character['img_url'] = file_url
                 elif reply.video:
-                    character['vid_url'] = catbox_url
+                    character['vid_url'] = file_url
                     # Download and upload thumbnail
                     thumbnail_path = await client.download_media(reply.video.thumbs[0].file_id)
-                    thumbnail_url = upload_to_catbox(thumbnail_path)
+                    if server == "imgbb":
+                        try:
+                            thumbnail_url = upload_to_imgbb(thumbnail_path)
+                        except Exception:
+                            thumbnail_url = upload_to_catbox(thumbnail_path)
+                    else:
+                        thumbnail_url = upload_to_catbox(thumbnail_path)
                     character['thum_url'] = thumbnail_url
                     os.remove(thumbnail_path)  # Clean up the thumbnail file
 
@@ -156,7 +257,7 @@ async def ul(client, message):
                 if reply.photo or reply.document:
                     await client.send_photo(
                         chat_id=CHARA_CHANNEL_ID,
-                        photo=catbox_url,
+                        photo=file_url,
                         caption=(
                             f"Character Name: {character_name}\n"
                             f"Anime Name: {anime}\n"
@@ -168,7 +269,7 @@ async def ul(client, message):
                 elif reply.video:
                     await client.send_video(
                         chat_id=CHARA_CHANNEL_ID,
-                        video=catbox_url,
+                        video=file_url,
                         caption=(
                             f"Character Name: {character_name}\n"
                             f"Anime Name: {anime}\n"
@@ -188,7 +289,10 @@ async def ul(client, message):
             except Exception as e:
                 await message.reply_text(f"Character Upload Unsuccessful. Error: {str(e)}")
             finally:
-                os.remove(path)  # Clean up the downloaded file
+                try:
+                    os.remove(path)  # Clean up the downloaded file
+                except:
+                    pass
         else:
             await message.reply_text("Please reply to a photo, document, or video.")
 
