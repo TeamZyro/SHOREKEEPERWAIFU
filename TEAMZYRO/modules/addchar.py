@@ -63,8 +63,23 @@ async def request_upload(client, message):
     path = await reply.download()
 
     try:
-        # Upload to Catbox
-        catbox_url = upload_to_catbox(path)
+        from TEAMZYRO.modules.upload import get_user_server, upload_to_catbox, upload_to_imgbb
+        server = await get_user_server(message.from_user.id)
+
+        # Check if document is a non-image
+        is_doc_non_image = False
+        if reply.document:
+            mime = getattr(reply.document, "mime_type", "") or ""
+            if not mime.startswith("image/"):
+                is_doc_non_image = True
+
+        if server == "imgbb" and not is_doc_non_image:
+            try:
+                catbox_url = upload_to_imgbb(path)
+            except Exception:
+                catbox_url = upload_to_catbox(path)
+        else:
+            catbox_url = upload_to_catbox(path)
 
         upload_data = {
             'name': character_name,
