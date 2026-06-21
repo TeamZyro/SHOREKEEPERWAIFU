@@ -4,7 +4,7 @@ import time
 import asyncio
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
-from TEAMZYRO import app, db, user_collection, require_power
+from TEAMZYRO import app, db, user_collection, require_power, application
 
 # Database collections
 ox_games = db["ox_games"]
@@ -610,5 +610,12 @@ async def ox_timeout_loop():
         except Exception as e:
             print(f"Error in ox_timeout_loop: {e}")
 
-# Start background monitoring task
-asyncio.create_task(ox_timeout_loop())
+# Hook into python-telegram-bot application post_init to schedule task safely inside the event loop
+original_post_init = getattr(application, 'post_init', None)
+
+async def ox_post_init(app_ptb):
+    if original_post_init:
+        await original_post_init(app_ptb)
+    asyncio.create_task(ox_timeout_loop())
+
+application.post_init = ox_post_init
