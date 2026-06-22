@@ -19,18 +19,6 @@ RARITY_PRICE = {
     "💮 Special Edition": 25000,
     "🔮 Limited Edition": 40000,
     "💸 Premium Edition": 30000,
-    "🌤 Summer": 35000,
-    "🎐 Celestial": 45000,
-    "❄️ Winter": 20000,
-    "💝 Valentine": 18000,
-    "🎃 Halloween": 16000,
-    "🎄 Christmas Special": 22000,
-    "🪐 Omniversal": 80000,
-    "🎭 Cosplay Master 🎭": 70000,
-    "🧧 Events": 25000,
-    "🍑 Echhi": 30000,
-    "🎗️ AMV Edition": 27000,
-    "🌟 Luminous": 50000,
 }
 
 
