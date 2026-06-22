@@ -100,43 +100,52 @@ async def guess(client: Client, message: Message):
 
         await react_to_message(chat_id, message.id)
 
-        # Fetch user again to update balance
+        # Fetch user to update balance
         user = await user_collection.find_one({'id': user_id})
         if user:
             current_balance = user.get('balance', 0)
             new_balance = current_balance + 40
             await user_collection.update_one({'id': user_id}, {'$set': {'balance': new_balance}})
-            
-            await message.reply_text(
-                f"🎉 Congratulations! You have earned 40 coins for guessing correctly! \nYour new balance is {new_balance} coins."
-            )
         else:
-            await user_collection.insert_one({'id': user_id, 'balance': 40})
-            
-            await message.reply_text(
-                "🎉 Congratulations! You have earned 40 coins for guessing correctly! \nYour new balance is 40 coins."
-            )
+            new_balance = 40
+            await user_collection.insert_one({
+                'id': user_id,
+                'username': message.from_user.username,
+                'first_name': message.from_user.first_name,
+                'characters': [last_characters[chat_id]],
+                'balance': 40
+            })
 
         keyboard = [[InlineKeyboardButton("See Harem", switch_inline_query_current_chat=f"collection.{user_id}")]]
         await message.reply_text(
             f'🌟 <b><a href="tg://user?id={user_id}">{escape(message.from_user.first_name)}</a></b>, you\'ve captured a new character! 🎊\n\n'
-            f'📛 𝗡𝗔𝗠𝗘: <b>{last_characters[chat_id]["name"]}</b> \n'
-            f'🌈 𝗔𝗡𝗜𝗠𝗘: <b>{last_characters[chat_id]["anime"]}</b> \n'
-            f'✨ 𝗥𝗔𝗥𝗜𝗧𝗬: <b>{last_characters[chat_id]["rarity"]}</b>\n\n'
-            f'⏱️ 𝗧𝗜𝗠𝗘 𝗧𝗔𝗞𝗘𝗡: <b>{time_taken_str}</b>\n'
-            f'This Character has been added to Your Harem. Use /harem to see your harem.</b>',
+            f'<blockquote>📛 <b>𝖭𝖠𝖬𝖤:</b> {last_characters[chat_id]["name"]}\n'
+            f'🌈 <b>𝖠𝖭𝖨𝖬𝖤:</b> {last_characters[chat_id]["anime"]}\n'
+            f'✨ <b>𝖱𝖠𝖱𝖨𝖳𝖸:</b> {last_characters[chat_id]["rarity"]}\n\n'
+            f'⏱️ <b>𝖳𝖨𝖬𝖤 𝖳𝖠𝖪𝖤𝖭:</b> {time_taken_str}\n'
+            f'💰 <b>𝖤𝖠𝖱𝖭𝖤𝖣:</b> +40 coins 🎉\n'
+            f'💳 <b>𝖭𝖤𝖶 𝖡𝖠𝖫𝖠𝖭𝖢𝖤:</b> {new_balance} coins\n\n'
+            f'This Character has been added to Your Harem. Use /harem to see your harem.</blockquote>',
             parse_mode=enums.ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     else:
         message_id = last_characters[chat_id].get('message_id')
+        incorrect_text = (
+            "🕵️‍♂️ <b>𝖦𝖴𝖤𝖲𝖲 𝖥𝖠𝖨𝖫𝖤𝖣</b>\n\n"
+            "<blockquote>❌ Not quite right, brave guesser! Try again and unveil the mystery character!</blockquote>"
+        )
         if message_id:
             keyboard = [
                 [InlineKeyboardButton("See Media Again", url=f"https://t.me/c/{str(chat_id)[4:]}/{message_id}")],
             ]
             await message.reply_text(
-                '❌ Not quite right, brave guesser! Try again and unveil the mystery character! 🕵️‍♂️',
-                reply_markup=InlineKeyboardMarkup(keyboard)
+                incorrect_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=enums.ParseMode.HTML
             )
         else:
-            await message.reply_text('❌ Not quite right, brave guesser! Try again! 🕵️‍♂️')
+            await message.reply_text(
+                incorrect_text,
+                parse_mode=enums.ParseMode.HTML
+            )

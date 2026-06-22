@@ -30,8 +30,8 @@ rarity_map = {
 
 # Game settings
 GRID_SIZE = 4      # Upgraded to 4x4 Grid
-MIN_BET = 100
-MAX_BET = 10000
+MIN_BET = 500
+MAX_BET = 100000
 MIN_MINES = 3
 MAX_MINES = 5
 MAX_MINE_HITS = 1  # 1 mine hit is game over

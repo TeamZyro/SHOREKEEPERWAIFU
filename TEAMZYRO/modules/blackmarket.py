@@ -1230,48 +1230,6 @@ async def serve_webapp_html(request):
     else:
         return web.Response(text="<h1>Black Market - Web App Page Not Found</h1>", status=404, content_type='text/html')
 
-async def serve_chess_html(request):
-    html_path = os.path.join(os.path.dirname(__file__), "..", "templates", "chess.html")
-    if os.path.exists(html_path):
-        with open(html_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        return web.Response(text=content, content_type='text/html')
-    else:
-        return web.Response(text="<h1>Chess Match - Web App Page Not Found</h1>", status=404, content_type='text/html')
-
-async def api_get_user_photo(request):
-    try:
-        user_id_str = request.query.get('user_id')
-        if not user_id_str:
-            return web.Response(text="Missing user_id", status=400)
-        try:
-            user_id = int(user_id_str)
-        except ValueError:
-            return web.Response(text="Invalid user_id", status=400)
-
-        avatars_dir = os.path.join(os.path.dirname(__file__), "..", "templates", "avatars")
-        os.makedirs(avatars_dir, exist_ok=True)
-        cached_path = os.path.join(avatars_dir, f"{user_id}.jpg")
-
-        # If cached file exists, redirect to it
-        if os.path.exists(cached_path):
-            return web.HTTPFound(f"/avatars/{user_id}.jpg")
-
-        # Otherwise download from Telegram using pyrogram client 'app'
-        try:
-            async for photo in app.get_chat_photos(user_id, limit=1):
-                await app.download_media(photo.file_id, file_name=cached_path)
-                if os.path.exists(cached_path):
-                    return web.HTTPFound(f"/avatars/{user_id}.jpg")
-        except Exception as e:
-            print(f"Error downloading avatar for {user_id}: {e}")
-
-        # Return default SVG avatar
-        return web.HTTPFound("/avatars/default.svg")
-    except Exception as e:
-        traceback.print_exc()
-        return web.Response(text="Error", status=500)
-
 # ----------------- Web App Server Startup Hook -----------------
 
 async def start_webapp_server():
@@ -1287,16 +1245,9 @@ async def start_webapp_server():
     app_web.router.add_options('/api/bank/loans', api_options_handler)
     app_web.router.add_options('/api/bank/borrow', api_options_handler)
     app_web.router.add_options('/api/bank/repay', api_options_handler)
-    app_web.router.add_options('/api/chess/game', api_options_handler)
-    app_web.router.add_options('/api/chess/move', api_options_handler)
-    app_web.router.add_options('/api/chess/surrender', api_options_handler)
-    app_web.router.add_options('/api/user/photo', api_options_handler)
     
     app_web.router.add_get('/', serve_webapp_html)
     app_web.router.add_get('/blackmarket', serve_webapp_html)
-    app_web.router.add_get('/chess', serve_chess_html)
-    app_web.router.add_get('/api/user/photo', api_get_user_photo)
-    
     app_web.router.add_get('/api/listings', api_get_listings)
     app_web.router.add_get('/api/harem', api_get_harem)
     app_web.router.add_get('/api/balance', api_get_balance)
@@ -1307,34 +1258,14 @@ async def start_webapp_server():
     app_web.router.add_post('/api/bank/borrow', api_borrow_loan)
     app_web.router.add_post('/api/bank/repay', api_repay_loan)
     
-    # Static files routing for cached avatars
-    avatars_dir = os.path.join(os.path.dirname(__file__), "..", "templates", "avatars")
-    os.makedirs(avatars_dir, exist_ok=True)
-    
-    # Create default svg avatar if not exists
-    default_svg_path = os.path.join(avatars_dir, "default.svg")
-    if not os.path.exists(default_svg_path):
-        with open(default_svg_path, "w", encoding="utf-8") as f:
-            f.write("""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#8e2de2;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#4a00e0;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <rect width="100%" height="100%" fill="url(#grad)"/>
-  <circle cx="50" cy="40" r="20" fill="#ffffff" opacity="0.8"/>
-  <path d="M 20 85 C 20 65, 80 65, 80 85" fill="#ffffff" opacity="0.8"/>
-</svg>""")
-            
-    app_web.router.add_static('/avatars/', path=avatars_dir, name='avatars')
-    
-    # Import Chess APIs dynamically to prevent circular imports
-    from TEAMZYRO.modules.chess import api_get_chess_game, api_make_chess_move, api_surrender_chess_game
-    app_web.router.add_get('/api/chess/game', api_get_chess_game)
-    app_web.router.add_post('/api/chess/move', api_make_chess_move)
-    app_web.router.add_post('/api/chess/surrender', api_surrender_chess_game)
-    
+    # Register Chess WebApp Routes
+    try:
+        from TEAMZYRO.modules.chess import register_chess_routes
+        register_chess_routes(app_web)
+    except Exception as e:
+        print(f"Error registering chess routes: {e}")
+        traceback.print_exc()
+        
     runner = web.AppRunner(app_web)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', port)
@@ -1349,5 +1280,14 @@ async def web_server_startup(app_ptb):
         await original_post_init(app_ptb)
     await start_webapp_server()
     asyncio.create_task(run_bank_emi_loop())
+    
+    # Start Chess Timer Background Task
+    try:
+        from TEAMZYRO.modules.chess import run_chess_timer_loop
+        asyncio.create_task(run_chess_timer_loop())
+    except Exception as e:
+        print(f"Error starting chess timer loop: {e}")
+        traceback.print_exc()
 
 application.post_init = web_server_startup
+

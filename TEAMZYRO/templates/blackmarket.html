@@ -667,13 +667,6 @@
         .zoom-close-btn:active {
             background: rgba(255, 255, 255, 0.2);
         }
-
-            transition: background 0.2s ease;
-        }
-
-        .zoom-close-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-        }
     </style>
 </head>
 <body>
@@ -819,8 +812,6 @@
         </div>
     </div>
 
-
-
     <!-- Tabs Footer Menu -->
     <div class="tabs">
         <button class="tab-btn active" id="btn-market" onclick="switchTab('market')">
@@ -852,6 +843,15 @@
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
+
+        // Redirect to Chess room if launched via chess deep link
+        if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+            const startParam = tg.initDataUnsafe.start_param;
+            if (startParam.startsWith('chess_')) {
+                const roomId = startParam.split('_')[1];
+                window.location.href = `/room/${roomId}`;
+            }
+        }
 
         const botToken = "8308024939:AAHv49KD7nbKG2HVVCm-9MbBxSSEOXdhSJ0";
         const initData = tg.initData || "debug_user_7078181502";
@@ -1614,19 +1614,6 @@
                 }
             });
         }
-
-        // Initialize WebApp load bindings
-        window.addEventListener('load', () => {
-            fetchBalance();
-            
-            // Check startapp parameters - redirect to chess page if matched
-            const startParam = tg.initDataUnsafe?.start_param || "";
-            if (startParam.startsWith("chess_")) {
-                window.location.href = `/chess?startapp=${startParam}`;
-                return;
-            }
-            switchTab('market');
-        });
     </script>
 </body>
 </html>
