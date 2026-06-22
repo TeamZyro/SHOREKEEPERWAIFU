@@ -660,7 +660,7 @@
         }
 
         const initData = tg.initData || "debug_user_7078181502";
-        const currentUserId = tg.initDataUnsafe?.user?.id || 7078181502;
+        const currentUserId = Number(tg.initDataUnsafe?.user?.id || 7078181502);
 
         let gameState = null;
         let selectedSquare = null;
@@ -815,7 +815,7 @@
             if (!gameState || gameState.status !== 'playing') return;
 
             // Check if it's the user's turn
-            const isMyTurn = (gameState.turn === currentUserId);
+            const isMyTurn = (Number(gameState.turn) === Number(currentUserId));
             if (!isMyTurn) {
                 showToast("It is not your turn!", "error");
                 return;
@@ -978,9 +978,9 @@
                 timeRemaining = data.time_remaining || 0;
 
                 // Configure player color assignment
-                if (data.player_white === currentUserId) {
+                if (Number(data.player_white) === Number(currentUserId)) {
                     myColor = 'white';
-                } else if (data.player_black === currentUserId) {
+                } else if (Number(data.player_black) === Number(currentUserId)) {
                     myColor = 'black';
                 }
 
@@ -1003,7 +1003,7 @@
                 ringBlack.className = `status-ring ${data.black_connected ? 'online' : 'offline'}`;
 
                 // Update turns visually
-                const isWhiteTurn = (data.turn === data.player_white);
+                const isWhiteTurn = (Number(data.turn) === Number(data.player_white));
                 document.getElementById('card-white').classList.toggle('active-turn', isWhiteTurn);
                 document.getElementById('card-black').classList.toggle('active-turn', !isWhiteTurn);
 
@@ -1018,7 +1018,7 @@
                     clearInterval(countdownTimer);
                     
                     const isDraw = data.winner === 'draw';
-                    const isWinner = data.winner === currentUserId;
+                    const isWinner = Number(data.winner) === Number(currentUserId);
 
                     document.getElementById('result-emoji').textContent = isDraw ? '🤝' : (isWinner ? '🏆' : '💀');
                     document.getElementById('result-title').textContent = isDraw ? 'Match Drawn' : (isWinner ? 'Victory!' : 'Defeat');
@@ -1046,7 +1046,7 @@
                 }
 
                 const timeStr = formatTime(timeRemaining);
-                const isWhiteTurn = (gameState.turn === gameState.player_white);
+                const isWhiteTurn = (Number(gameState.turn) === Number(gameState.player_white));
                 
                 if (isWhiteTurn) {
                     document.getElementById('timer-white').textContent = timeStr;
