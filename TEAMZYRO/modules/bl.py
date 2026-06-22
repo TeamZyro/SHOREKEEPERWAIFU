@@ -1245,6 +1245,9 @@ async def start_webapp_server():
     app_web.router.add_options('/api/bank/loans', api_options_handler)
     app_web.router.add_options('/api/bank/borrow', api_options_handler)
     app_web.router.add_options('/api/bank/repay', api_options_handler)
+    app_web.router.add_options('/api/chess/game', api_options_handler)
+    app_web.router.add_options('/api/chess/move', api_options_handler)
+    app_web.router.add_options('/api/chess/surrender', api_options_handler)
     
     app_web.router.add_get('/', serve_webapp_html)
     app_web.router.add_get('/blackmarket', serve_webapp_html)
@@ -1257,6 +1260,12 @@ async def start_webapp_server():
     app_web.router.add_get('/api/bank/loans', api_get_loans)
     app_web.router.add_post('/api/bank/borrow', api_borrow_loan)
     app_web.router.add_post('/api/bank/repay', api_repay_loan)
+    
+    # Import Chess APIs dynamically to prevent circular imports
+    from TEAMZYRO.modules.chess import api_get_chess_game, api_make_chess_move, api_surrender_chess_game
+    app_web.router.add_get('/api/chess/game', api_get_chess_game)
+    app_web.router.add_post('/api/chess/move', api_make_chess_move)
+    app_web.router.add_post('/api/chess/surrender', api_surrender_chess_game)
     
     runner = web.AppRunner(app_web)
     await runner.setup()
