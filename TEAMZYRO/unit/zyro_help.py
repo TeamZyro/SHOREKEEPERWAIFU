@@ -451,5 +451,27 @@ Make sure to reply with an image when using /addchar or /upload!
 6. **AFK Protection**: Exceeding the 2-minute timer on your turn triggers an automatic loss, awarding the win to your opponent.
 7. **Auto-Cancellation**: If a lobby remains empty for **5 minutes**, it is cancelled automatically and the host is refunded.
 """
+    },
+    "chess": {
+        "HELP_NAME": "Cʜᴇss",
+        "HELP": """
+♟️ **Real-time Chess Game** ♟️
+
+**Commands:**
+- `/chess <bet>` 
+  ┗ Host a new chess match lobby with a specified coin bet.
+
+**Game Rules:**
+1. **Matchmaking**: Host sets a bet (minimum 100 coins). Another player clicks **Join Match** to match the bet and start the game.
+2. **Escrow**: Both players' bets are escrowed from their balance upfront.
+3. **Play**: Click the **Play Chess** button to open the real-time board inside the Telegram Mini App.
+4. **Time Controls**: Each player starts with **10 minutes** total remaining on their clock. The timer counts down when it is your turn.
+5. **Win / Loss**: 
+   - Win by **Checkmate**, opponent **Resignation**, or opponent **Timeout** (running out of time).
+   - The winner receives the entire bet pool (2x bet).
+   - Lose by running out of time, resigning, or getting checkmated.
+6. **Draw**: Ends in a refund for both players if a draw occurs (stalemate, repetition, fifty-move rule, insufficient material).
+7. **Abort**: If no moves have been made yet, either player can **Abort** to end the game and get fully refunded.
+"""
     }
 }
