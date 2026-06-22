@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Waifu Chess Match</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #060913;
+            --card-bg: rgba(15, 23, 42, 0.65);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary-color: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.35);
+            --accent-gold: #f59e0b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+            
+            /* Chess Board Colors */
+            --board-light: #e2e8f0;
+            --board-dark: #475569;
+            --square-highlight: rgba(245, 158, 11, 0.4);
+            --square-legal: rgba(16, 185, 129, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at top right, rgba(139, 92, 246, 0.15), transparent 400px),
+                              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.05), transparent 300px);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Container Layout */
+        .game-container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Glassmorphic Cards */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Top Header */
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #c084fc, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lobby-bet-tag {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        /* Players Section */
+        .players-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .player-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 10px 14px;
+            transition: all 0.3s ease;
+        }
+
+        .player-card.active-turn {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 12px var(--primary-glow);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar-container {
+            position: relative;
+            width: 44px;
+            height: 44px;
+        }
+
+        .player-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Connection Pulsing Status Indicator */
+        .status-ring {
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            pointer-events: none;
+        }
+
+        .status-ring.online {
+            border-color: var(--success-color);
+            animation: pulse-online 2s infinite;
+        }
+
+        .status-ring.offline {
+            border-color: var(--danger-color);
+            opacity: 0.6;
+        }
+
+        @keyframes pulse-online {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+            }
+            70% {
+                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        .player-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .player-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .player-timer {
+            font-family: 'Outfit', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 8px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .player-card.active-turn .player-timer {
+            color: #c084fc;
+        }
+
+        /* Chess Board Frame */
+        .board-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            aspect-ratio: 1;
+            width: 100%;
+            position: relative;
+        }
+
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 4px solid rgba(15, 23, 42, 0.8);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background-color: var(--board-dark);
+        }
+
+        .square {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .square.light {
+            background-color: var(--board-light);
+        }
+
+        .square.dark {
+            background-color: var(--board-dark);
+        }
+
+        /* Interactive highlights */
+        .square.selected-square {
+            box-shadow: inset 0 0 0 3px var(--accent-gold);
+            background-color: rgba(245, 158, 11, 0.25) !important;
+        }
+
+        .square.legal-target::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--square-legal);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        /* Capture indicators on occupied squares */
+        .square.legal-target.occupied::after {
+            width: 90%;
+            height: 90%;
+            border-radius: 8px;
+            border: 3px solid rgba(239, 68, 110, 0.7);
+            background-color: transparent;
+            box-shadow: none;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.8; }
+        }
+
+        /* Chess Pieces (Styled solid Unicode) */
+        .piece {
+            font-size: 2.2rem;
+            z-index: 2;
+            cursor: pointer;
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .piece.white {
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3),
+                         0 0 10px rgba(255, 255, 255, 0.8),
+                         0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        .piece.black {
+            color: #111827;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7),
+                         0 0 10px rgba(168, 85, 247, 0.8),
+                         0 0 20px rgba(168, 85, 247, 0.4);
+        }
+
+        .piece:active {
+            transform: scale(1.15);
+        }
+
+        /* Controls Panel */
+        .controls-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .action-btn:active {
+            transform: scale(0.97);
+            box-shadow: none;
+        }
+
+        .action-btn.danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            box-shadow: none;
+        }
+
+        /* Modals & Overlays */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(6, 9, 19, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 16px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 340px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .modal-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        /* Promotion Picker Grid */
+        .promotion-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .promotion-option {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .promotion-option:active {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        .promotion-option span {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Game Over Layout */
+        .winner-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .winner-emoji {
+            font-size: 4rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+
+        /* Toast Container */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.error { border-left-color: var(--danger-color); }
+        .toast.success { border-left-color: var(--success-color); }
+
+        /* Loader Overlay */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(6, 9, 19, 0.8);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .loader-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(139, 92, 246, 0.1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        
+        <!-- Header Section -->
+        <div class="glass-card header-bar">
+            <div class="header-title">
+                <span>♟️</span> Waifu Chess Room
+            </div>
+            <div class="lobby-bet-tag" id="game-bet-label">
+                Bet: 0
+            </div>
+        </div>
+
+        <!-- Players Cards -->
+        <div class="glass-card players-wrapper">
+            <!-- White Player -->
+            <div class="player-card" id="card-white">
+                <div class="player-info">
+                    <div class="avatar-container">
+                        <div class="status-ring" id="ring-white"></div>
+                        <img class="player-avatar" id="avatar-white" src="/avatars/default.svg" alt="White">
+                    </div>
+                    <div>
+                        <div class="player-name" id="name-white">Host</div>
+                        <div class="player-label">⚪ White</div>
+                    </div>
+                </div>
+                <div class="player-timer" id="timer-white">03:00</div>
+            </div>
+
+            <!-- Black Player -->
+            <div class="player-card" id="card-black">
+                <div class="player-info">
+                    <div class="avatar-container">
+                        <div class="status-ring" id="ring-black"></div>
+                        <img class="player-avatar" id="avatar-black" src="/avatars/default.svg" alt="Black">
+                    </div>
+                    <div>
+                        <div class="player-name" id="name-black">Opponent</div>
+                        <div class="player-label">⚫ Black</div>
+                    </div>
+                </div>
+                <div class="player-timer" id="timer-black">03:00</div>
+            </div>
+        </div>
+
+        <!-- Chess Board Frame -->
+        <div class="glass-card board-container">
+            <div class="chess-board" id="chess-board">
+                <!-- Squares loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="glass-card controls-panel">
+            <button class="action-btn secondary" id="btn-back" onclick="navigateBack()">
+                🔙 Exit Match
+            </button>
+            <button class="action-btn danger" id="btn-resign" onclick="triggerResign()">
+                🏳️ Resign
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Pawn Promotion Overlay -->
+    <div class="modal-overlay" id="promotion-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">Pawn Promotion</h3>
+            <p class="modal-description">Choose a piece to promote your pawn into:</p>
+            <div class="promotion-grid">
+                <div class="promotion-option" onclick="choosePromotion('q')">
+                    ♛ <span>Queen</span>
+                </div>
+                <div class="promotion-option" onclick="choosePromotion('r')">
+                    ♜ <span>Rook</span>
+                </div>
+                <div class="promotion-option" onclick="choosePromotion('b')">
+                    ♝ <span>Bishop</span>
+                </div>
+                <div class="promotion-option" onclick="choosePromotion('n')">
+                    ♞ <span>Knight</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Result Modal -->
+    <div class="modal-overlay" id="result-overlay">
+        <div class="modal-content winner-screen">
+            <div class="winner-emoji" id="result-emoji">🏆</div>
+            <h3 class="modal-title" id="result-title">Match Ended</h3>
+            <p class="modal-description" id="result-desc">Match details...</p>
+            <button class="action-btn" onclick="navigateBack()" style="width: 100%;">
+                Back to Lobby
+            </button>
+        </div>
+    </div>
+
+    <!-- Loader -->
+    <div class="loader-overlay" id="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- JS Logic -->
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Retrieve game ID from URL or start_param
+        const urlParams = new URLSearchParams(window.location.search);
+        let gameId = urlParams.get('game_id') || urlParams.get('startapp') || "";
+        if (gameId.startsWith("chess_")) {
+            gameId = gameId.substring(6);
+        }
+
+        const initData = tg.initData || "debug_user_7078181502";
+        const currentUserId = tg.initDataUnsafe?.user?.id || 7078181502;
+
+        let gameState = null;
+        let selectedSquare = null;
+        let myColor = 'white'; // 'white' or 'black'
+        let legalMoves = [];
+        let pollingInterval = null;
+        let lastFen = "";
+        let countdownTimer = null;
+        let timeRemaining = 180;
+        let promotionPendingMove = null;
+
+        // Unicode Symbols mapping
+        const pieceSymbols = {
+            'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔',
+            'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚'
+        };
+
+        // UI Helpers
+        function showToast(message, type = "info") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 50);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function showLoader(show) {
+            document.getElementById('loader').classList.toggle('active', show);
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        // Parse FEN string to a key-value mapping
+        function parseFen(fen) {
+            const boardState = {};
+            const parts = fen.split(' ');
+            const boardPart = parts[0];
+            const rows = boardPart.split('/');
+            
+            const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+            for (let r = 0; r < 8; r++) {
+                const row = rows[r];
+                const rank = (8 - r).toString();
+                let fIdx = 0;
+                for (let i = 0; i < row.length; i++) {
+                    const char = row[i];
+                    if (isNaN(char)) {
+                        const file = files[fIdx];
+                        boardState[file + rank] = char;
+                        fIdx++;
+                    } else {
+                        fIdx += parseInt(char);
+                    }
+                }
+            }
+            return boardState;
+        }
+
+        // Render Board UI
+        function drawBoard() {
+            if (!gameState) return;
+            const fen = gameState.board_fen;
+            const boardState = parseFen(fen);
+            const boardEl = document.getElementById('chess-board');
+            boardEl.innerHTML = '';
+
+            const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+            const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+            // Flip coordinates for Black player
+            if (myColor === 'black') {
+                files.reverse();
+                ranks.reverse();
+            }
+
+            for (let r = 0; r < 8; r++) {
+                for (let f = 0; f < 8; f++) {
+                    const file = files[f];
+                    const rank = ranks[r];
+                    const squareName = file + rank;
+                    const piece = boardState[squareName];
+
+                    const squareEl = document.createElement('div');
+                    squareEl.className = `square ${(r + f) % 2 === 0 ? 'light' : 'dark'}`;
+                    squareEl.dataset.square = squareName;
+
+                    // Add highlighted state
+                    if (selectedSquare === squareName) {
+                        squareEl.classList.add('selected-square');
+                    }
+
+                    // Render pieces
+                    if (piece) {
+                        const pieceEl = document.createElement('div');
+                        const isWhite = piece === piece.toUpperCase();
+                        pieceEl.className = `piece ${isWhite ? 'white' : 'black'}`;
+                        pieceEl.innerHTML = pieceSymbols[piece] || piece;
+                        pieceEl.dataset.piece = piece;
+                        squareEl.appendChild(pieceEl);
+                    }
+
+                    // Event binding
+                    squareEl.addEventListener('click', () => handleSquareTap(squareName, piece));
+                    boardEl.appendChild(squareEl);
+                }
+            }
+            lastFen = fen;
+        }
+
+        // Interactive legal move highlights
+        function updateHighlights() {
+            // Clear past targets
+            document.querySelectorAll('.square').forEach(sq => {
+                sq.classList.remove('legal-target');
+                sq.classList.remove('occupied');
+                sq.classList.remove('selected-square');
+                if (sq.dataset.square === selectedSquare) {
+                    sq.classList.add('selected-square');
+                }
+            });
+
+            if (!selectedSquare || !gameState) return;
+
+            // Filter legal UCI moves starting with this square
+            const availableMoves = legalMoves.filter(m => m.startsWith(selectedSquare));
+
+            availableMoves.forEach(move => {
+                const targetSquare = move.substring(2, 4);
+                const squareEl = document.querySelector(`.square[data-square="${targetSquare}"]`);
+                if (squareEl) {
+                    squareEl.classList.add('legal-target');
+                    // Mark as occupied if there's a piece inside it
+                    if (squareEl.querySelector('.piece')) {
+                        squareEl.classList.add('occupied');
+                    }
+                }
+            });
+        }
+
+        // User clicked a square
+        function handleSquareTap(squareName, piece) {
+            if (!gameState || gameState.status !== 'playing') return;
+
+            // Check if it's the user's turn
+            const isMyTurn = (gameState.turn === currentUserId);
+            if (!isMyTurn) {
+                showToast("It is not your turn!", "error");
+                return;
+            }
+
+            // If a piece is already selected
+            if (selectedSquare) {
+                // If they clicked the same square, deselect
+                if (selectedSquare === squareName) {
+                    selectedSquare = null;
+                    updateHighlights();
+                    return;
+                }
+
+                // Check if the clicked square is a legal destination
+                const matchingMove = legalMoves.find(m => m.startsWith(selectedSquare) && m.substring(2, 4) === squareName);
+
+                if (matchingMove) {
+                    // Check for Pawn Promotion (White pawn on rank 7 to 8 or Black pawn on rank 2 to 1)
+                    const pieceOnSelected = getPieceAtSquare(selectedSquare);
+                    const isWhitePawn = pieceOnSelected === 'P';
+                    const isBlackPawn = pieceOnSelected === 'p';
+                    const isPromotion = (isWhitePawn && selectedSquare.endsWith('7') && squareName.endsWith('8')) ||
+                                        (isBlackPawn && selectedSquare.endsWith('2') && squareName.endsWith('1'));
+
+                    if (isPromotion) {
+                        promotionPendingMove = { from: selectedSquare, to: squareName };
+                        document.getElementById('promotion-overlay').classList.add('active');
+                    } else {
+                        executeMove(selectedSquare + squareName);
+                    }
+                    selectedSquare = null;
+                    updateHighlights();
+                    return;
+                }
+            }
+
+            // Select a piece matching player color
+            if (piece) {
+                const isPieceWhite = piece === piece.toUpperCase();
+                const isPieceMine = (myColor === 'white' && isPieceWhite) || (myColor === 'black' && !isPieceWhite);
+
+                if (isPieceMine) {
+                    selectedSquare = squareName;
+                    updateHighlights();
+                } else {
+                    selectedSquare = null;
+                    updateHighlights();
+                }
+            } else {
+                selectedSquare = null;
+                updateHighlights();
+            }
+        }
+
+        function getPieceAtSquare(squareName) {
+            const sq = document.querySelector(`.square[data-square="${squareName}"]`);
+            if (sq) {
+                const pieceEl = sq.querySelector('.piece');
+                if (pieceEl) {
+                    return pieceEl.dataset.piece;
+                }
+            }
+            return null;
+        }
+
+        // Promotion choice selection
+        function choosePromotion(choice) {
+            document.getElementById('promotion-overlay').classList.remove('active');
+            if (promotionPendingMove) {
+                const fullMoveUci = promotionPendingMove.from + promotionPendingMove.to + choice;
+                executeMove(fullMoveUci);
+                promotionPendingMove = null;
+            }
+        }
+
+        // Execute API call to move a piece
+        async function executeMove(moveUci) {
+            showLoader(true);
+            try {
+                const response = await fetch('/api/chess/move', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${initData}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        game_id: gameId,
+                        move_uci: moveUci
+                    })
+                });
+
+                const res = await response.json();
+                if (res.success) {
+                    showToast("Move executed!", "success");
+                    await fetchGameState();
+                } else {
+                    showToast(res.error || "Illegal move!", "error");
+                }
+            } catch (err) {
+                showToast("Connection error while moving piece", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        // Call surrender endpoint
+        function triggerResign() {
+            tg.showConfirm("Are you sure you want to resign (surrender) this match? You will lose your bet.", async (confirmed) => {
+                if (!confirmed) return;
+                
+                showLoader(true);
+                try {
+                    const response = await fetch('/api/chess/surrender', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${initData}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ game_id: gameId })
+                    });
+                    
+                    const res = await response.json();
+                    if (res.success) {
+                        showToast("You resigned the match.", "error");
+                        await fetchGameState();
+                    } else {
+                        showToast(res.error || "Could not surrender match", "error");
+                    }
+                } catch (err) {
+                    showToast("Request error occurred", "error");
+                } finally {
+                    showLoader(false);
+                }
+            });
+        }
+
+        // Sync with API backend
+        async function fetchGameState() {
+            if (!gameId) return;
+            try {
+                const response = await fetch(`/api/chess/game?game_id=${gameId}`, {
+                    headers: { 'Authorization': `Bearer ${initData}` }
+                });
+                
+                if (response.status === 403) {
+                    showToast("You are not a player in this match!", "error");
+                    clearInterval(pollingInterval);
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.error) {
+                    showToast(data.error, "error");
+                    return;
+                }
+
+                gameState = data;
+                legalMoves = data.legal_moves || [];
+                timeRemaining = data.time_remaining || 0;
+
+                // Configure player color assignment
+                if (data.player_white === currentUserId) {
+                    myColor = 'white';
+                } else if (data.player_black === currentUserId) {
+                    myColor = 'black';
+                }
+
+                // Update bets & prizes
+                document.getElementById('game-bet-label').textContent = `Bet: ${Number(data.bet).toLocaleString()}`;
+
+                // Update Player Details
+                document.getElementById('name-white').textContent = data.player_white_name || "Host";
+                document.getElementById('name-black').textContent = data.player_black_name || "Opponent";
+                document.getElementById('avatar-white').src = `/api/user/photo?user_id=${data.player_white}`;
+                if (data.player_black) {
+                    document.getElementById('avatar-black').src = `/api/user/photo?user_id=${data.player_black}`;
+                }
+
+                // Update Status Rings (pulsing green/static offline)
+                const ringWhite = document.getElementById('ring-white');
+                const ringBlack = document.getElementById('ring-black');
+
+                ringWhite.className = `status-ring ${data.white_connected ? 'online' : 'offline'}`;
+                ringBlack.className = `status-ring ${data.black_connected ? 'online' : 'offline'}`;
+
+                // Update turns visually
+                const isWhiteTurn = (data.turn === data.player_white);
+                document.getElementById('card-white').classList.toggle('active-turn', isWhiteTurn);
+                document.getElementById('card-black').classList.toggle('active-turn', !isWhiteTurn);
+
+                // Redraw board only if FEN changes to prevent state reset on poll
+                if (data.board_fen !== lastFen) {
+                    drawBoard();
+                }
+
+                // Handle Match Over states
+                if (data.status === 'ended') {
+                    clearInterval(pollingInterval);
+                    clearInterval(countdownTimer);
+                    
+                    const isDraw = data.winner === 'draw';
+                    const isWinner = data.winner === currentUserId;
+
+                    document.getElementById('result-emoji').textContent = isDraw ? '🤝' : (isWinner ? '🏆' : '💀');
+                    document.getElementById('result-title').textContent = isDraw ? 'Match Drawn' : (isWinner ? 'Victory!' : 'Defeat');
+                    document.getElementById('result-desc').textContent = isDraw ? 
+                        `The match ended in a draw. Refunded ${Number(data.bet).toLocaleString()} coins.` :
+                        (isWinner ? `Congratulations! You won the prize pool of ${Number(data.prize_pool).toLocaleString()} coins.` :
+                                    `Match won by ${data.winner_name || "your opponent"}.`);
+                    
+                    document.getElementById('result-overlay').classList.add('active');
+                }
+
+            } catch (err) {
+                console.error("Error polling game state:", err);
+            }
+        }
+
+        // Timers loop ticking
+        function startTimerTick() {
+            clearInterval(countdownTimer);
+            countdownTimer = setInterval(() => {
+                if (!gameState || gameState.status !== 'playing') return;
+
+                if (timeRemaining > 0) {
+                    timeRemaining--;
+                }
+
+                const timeStr = formatTime(timeRemaining);
+                const isWhiteTurn = (gameState.turn === gameState.player_white);
+                
+                if (isWhiteTurn) {
+                    document.getElementById('timer-white').textContent = timeStr;
+                    document.getElementById('timer-black').textContent = "00:00";
+                } else {
+                    document.getElementById('timer-black').textContent = timeStr;
+                    document.getElementById('timer-white').textContent = "00:00";
+                }
+
+                // If timer runs out, query API to fetch status
+                if (timeRemaining <= 0) {
+                    fetchGameState();
+                }
+            }, 1000);
+        }
+
+        function navigateBack() {
+            window.location.href = "/blackmarket";
+        }
+
+        // Initialize Loop
+        window.addEventListener('load', async () => {
+            if (!gameId) {
+                showToast("Missing Game Session ID", "error");
+                return;
+            }
+            showLoader(true);
+            await fetchGameState();
+            showLoader(false);
+
+            // Poll every 2 seconds
+            pollingInterval = setInterval(fetchGameState, 2000);
+            startTimerTick();
+        });
+    </script>
+</body>
+</html>
