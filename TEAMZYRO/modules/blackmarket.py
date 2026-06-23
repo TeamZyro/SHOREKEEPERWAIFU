@@ -816,6 +816,7 @@ RARITY_PRICE = {
     "🍑 Echhi": 30000,
     "🎗️ AMV Edition": 27000,
     "🌟 Luminous": 50000,
+    "🌧 Rainy": 20000,
 }
 
 async def api_get_loans(request):
