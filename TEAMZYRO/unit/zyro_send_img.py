@@ -21,7 +21,7 @@ RARITY_WEIGHTS = {
     "💮 Special Edition": (8, True),     # Very rare
     "🔮 Limited Edition": (6, True),     # Extremely rare
     "💸 Premium Edition": (4, True),     # Ultra-rare
-    "🌤 Summer": (3, True),             # Seasonal rarity
+    "🌤 Summer": (3, False),             # Seasonal rarity
     "🎐 Celestial": (2.5, True),         # Cosmic themed rarity
     "❄️ Winter": (2, False),             # Winter themed rarity
     "💝 Valentine": (2, False),          # Valentine's rarity
@@ -32,6 +32,7 @@ RARITY_WEIGHTS = {
     "🧧 Events": (0.8, False),           # Limited-time event rarity
     "🍑 Echhi": (0.6, True),             # Adult-themed rarity
     "🎗️ AMV Edition": (0.5, False),     # AMV special rarity
+    "🌧 Rainy": (2.0, False),            # Rainy event rarity
 }
 
 
