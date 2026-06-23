@@ -18,6 +18,7 @@ rarity_map = {
     17: "🍑 Echhi",
     18: "🎗️ AMV Edition",
     19: "🌟 Luminous",
+    20: "🌧 Rainy",
     22: "🍭 Winter event",
 }
 
@@ -41,6 +42,7 @@ RARITY_NAMES = [
     "🧧 Events",
     "🍑 Echhi",
     "🎗️ AMV Edition",
+    "🌧 Rainy",
 ]
 
 # rarity_map2 updated according to rarity_map
@@ -63,4 +65,6 @@ rarity_map2 = {
     "🧧 Events": "🧧",
     "🍑 Echhi": "🍑",
     "🎗️ AMV Edition": "🎗️",
+    "🌧 Rainy": "🌧",
 }
+
