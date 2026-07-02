@@ -17,3 +17,4 @@ python-dotenv==0.21.0
 kurigram
 aiogram
 chess
+playwright==1.54.0
