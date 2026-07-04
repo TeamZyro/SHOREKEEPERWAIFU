@@ -13,14 +13,17 @@ DEFAULT_DISCOUNT = 12
 
 RARITY_PRICE = {
     "⚪️ Common": 1000,
-    "🟣 Rare": 5000,
-    "🟡 Legendary": 15000,
-    "🟢 Medium": 30000,
+    "🟣 Rare": 8000,
+    "🟡 Legendary": 70000,
+    "🟢 Medium": 3000,
     "💮 Special Edition": 25000,
     "🔮 Limited Edition": 40000,
-    "💸 Premium Edition": 30000,
+    "💸 Premium Edition": 35000,
+    "🪐 Omniversal": 150000,
+    "🌟 Luminous": 80000,
+    "🎗️ AMV Edition": 300000,
+    "🎐 Celestial": 50000,
 }
-
 
 # Safe split
 def safe_split(data, sep="_", expected=2):
