@@ -47,13 +47,6 @@ async def mclaim(_, message: t.Message):
     claim_lock[user_id] = True
     try:
         # Ensure the user is in the correct chat
-        if str(message.chat.id) != chat:
-            join_button = InlineKeyboardMarkup([[InlineKeyboardButton("Join Here", url="https://t.me/oneforall_support")]])
-            return await message.reply_text(
-                "🔔 ᴊᴏɪɴ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴄʟᴀɪᴍ ʏᴏᴜʀ ᴅᴀɪʟʏ ᴄʜᴀʀᴀᴄᴛᴇʀ 🔔",
-                reply_markup=join_button
-            )
-
         # Fetch user data or create a new user if not found
         user_data = await user_collection.find_one({'id': user_id})
         if not user_data:
