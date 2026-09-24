@@ -3,7 +3,7 @@ const { MongoClient } = require('mongodb');
 const NodeCache = require('node-cache');
 
 // Configuration
-const TOKEN = process.env.TOKEN || "8482718820:AAEqjcI1vfw-vN23znEj-fHl2yn1UIN7Lyo";
+const TOKEN = process.env.TOKEN || "8308024939:AAHv49KD7nbKG2HVVCm-9MbBxSSEOXdhSJ0";
 const MONGO_URL = "mongodb+srv://harshmanjhi1801:webapp@cluster0.xxwc4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 // Bot setup
