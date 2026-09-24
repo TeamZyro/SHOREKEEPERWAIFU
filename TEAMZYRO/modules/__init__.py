@@ -2,6 +2,8 @@ import logging
 import sys
 import time
 
+from .inlinequery import InlineQueryHandler
+
 StartTime = time.time()
 
 # enable logging
