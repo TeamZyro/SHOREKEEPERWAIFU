@@ -103,4 +103,5 @@ async def inlinequery(update: Update, context: CallbackContext) -> None:
     await update.inline_query.answer(results, next_offset=next_offset, cache_time=5)
     
 # Add the handler to your bot's application _ # 
-#application.add_handler(InlineQueryHandler(inlinequery, block=False))
+
+application.add_handler(InlineQueryHandler(inlinequery, block=False))
