@@ -2,7 +2,7 @@ from TEAMZYRO import *
 import importlib
 import logging
 from TEAMZYRO.modules import ALL_MODULES
-
+from TEAMZYRO.modules import InlineQueryHandler
 
 def main() -> None:
     for module_name in ALL_MODULES:
@@ -11,6 +11,7 @@ def main() -> None:
 
     ZYRO.start()
     application.run_polling(drop_pending_updates=True)
+    application.add_handler(InlineQueryHandler(inlinequery, block=False))
     LOGGER("TEAMZYRO").info(
         "╔═════ஜ۩۞۩ஜ════╗\n  ☠︎︎MADE BY TEAMZYRO☠︎︎\n╚═════ஜ۩۞۩ஜ════╝"
     )
