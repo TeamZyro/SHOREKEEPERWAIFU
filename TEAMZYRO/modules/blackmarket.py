@@ -99,7 +99,7 @@ async def sell_character(client, message):
     user_id = message.from_user.id
     args = message.command
     if len(args) != 3:
-        await message.reply_text("Usage: `/sell <character_id> <price>`\nExample: `/sell 101 5000`", parse_mode=enums.ParseMode.MARKDOWN)
+        await message.reply_text("Usage: `/sell <character_id> <price>`\nExample: `/sell 101 5000`", parse_mode=enums.ParseMode.DISABLED)
         return
     
     char_id = args[1]
@@ -163,18 +163,18 @@ async def sell_character(client, message):
         ])
         
         if character.get('vid_url'):
-            await message.reply_video(video=character['vid_url'], caption=caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+            await message.reply_video(video=character['vid_url'], caption=caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
         elif character.get('img_url'):
-            await message.reply_photo(photo=character['img_url'], caption=caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+            await message.reply_photo(photo=character['img_url'], caption=caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
         else:
-            await message.reply_text(caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+            await message.reply_text(caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
 
 @app.on_message(filters.command("unsell"))
 async def unsell_character(client, message):
     user_id = message.from_user.id
     args = message.command
     if len(args) != 2:
-        await message.reply_text("Usage: `/unsell <listing_id>`", parse_mode=enums.ParseMode.MARKDOWN)
+        await message.reply_text("Usage: `/unsell <listing_id>`", parse_mode=enums.ParseMode.DISABLED)
         return
         
     listing_id = args[1]
@@ -208,7 +208,7 @@ async def unsell_character(client, message):
             f"❌ **Listing Cancelled!**\n"
             f"**{character.get('name', 'Unknown')}** has been returned to your harem.",
             reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.MARKDOWN
+            parse_mode=enums.ParseMode.DISABLED
         )
 
 @app.on_message(filters.command("buy"))
@@ -216,7 +216,7 @@ async def buy_character(client, message):
     buyer_id = message.from_user.id
     args = message.command
     if len(args) != 2:
-        await message.reply_text("Usage: `/buy <listing_id>`", parse_mode=enums.ParseMode.MARKDOWN)
+        await message.reply_text("Usage: `/buy <listing_id>`", parse_mode=enums.ParseMode.DISABLED)
         return
         
     listing_id = args[1]
@@ -231,7 +231,7 @@ async def buy_character(client, message):
     character = listing['character']
     
     if buyer_id == seller_id:
-        await message.reply_text("You cannot buy your own character! Use `/unsell <listing_id>` to cancel the sale.", parse_mode=enums.ParseMode.MARKDOWN)
+        await message.reply_text("You cannot buy your own character! Use `/unsell <listing_id>` to cancel the sale.", parse_mode=enums.ParseMode.DISABLED)
         return
         
     # Lock users deterministically to avoid deadlock
@@ -247,7 +247,7 @@ async def buy_character(client, message):
             buyer = await user_collection.find_one({'id': buyer_id})
             buyer_balance = buyer.get('balance', 0) if buyer else 0
             if buyer_balance < price:
-                await message.reply_text(f"Insufficient balance! You need **{price}** coins, but you only have **{buyer_balance}**.", parse_mode=enums.ParseMode.MARKDOWN)
+                await message.reply_text(f"Insufficient balance! You need **{price}** coins, but you only have **{buyer_balance}**.", parse_mode=enums.ParseMode.DISABLED)
                 return
                 
             # Perform atomic balance adjustments
@@ -281,7 +281,7 @@ async def buy_character(client, message):
                 f"🎉 **Purchase Successful!**\n\n"
                 f"You bought **{character.get('name', 'Unknown')}** (ID: `{character.get('id')}`) for **{price:,}** coins from [{seller_name}](tg://user?id={seller_id}).",
                 reply_markup=reply_markup,
-                parse_mode=enums.ParseMode.MARKDOWN
+                parse_mode=enums.ParseMode.DISABLED
             )
             
             # Notify seller
@@ -290,7 +290,7 @@ async def buy_character(client, message):
                     chat_id=seller_id,
                     text=f"💰 **Character Sold!**\n\n"
                          f"Your character **{character.get('name', 'Unknown')}** (ID: `{character.get('id')}`) was bought by [{buyer_name}](tg://user?id={buyer_id}) for **{price:,}** coins!",
-                    parse_mode=enums.ParseMode.MARKDOWN
+                    parse_mode=enums.ParseMode.DISABLED
                 )
             except Exception as e:
                 print(f"Error notifying seller: {e}")
@@ -329,7 +329,7 @@ async def my_listings_command(client, message):
     keyboard.append([InlineKeyboardButton("🛒 Open Web App", url=f"https://t.me/{bot_username}?startapp=true")])
         
     reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-    await message.reply_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+    await message.reply_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
 
 # ----------------- Interactive Telegram Interface -----------------
 
@@ -349,9 +349,9 @@ async def display_black_market(client, message_or_query, page, is_initial=False)
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         if is_callback:
-            await message_or_query.edit_message_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+            await message_or_query.edit_message_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
         else:
-            await message.reply_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+            await message.reply_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
         return
         
     items_per_page = 5
@@ -407,9 +407,9 @@ async def display_black_market(client, message_or_query, page, is_initial=False)
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     if is_callback:
-        await message_or_query.edit_message_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+        await message_or_query.edit_message_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
     else:
-        await message.reply_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+        await message.reply_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
 
 @app.on_callback_query(filters.regex(r"^bm_page:"))
 async def on_bm_page(client, callback_query):
@@ -461,7 +461,7 @@ async def on_bm_detail(client, callback_query):
     if img_url:
         caption = f"[‌]({img_url})" + caption
         
-    await callback_query.edit_message_text(caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+    await callback_query.edit_message_text(caption, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
 
 @app.on_callback_query(filters.regex(r"^bm_cancel_conf:"))
 async def on_bm_cancel_conf(client, callback_query):
@@ -519,7 +519,7 @@ async def on_bm_buy_conf(client, callback_query):
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.MARKDOWN)
+    await callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode=enums.ParseMode.DISABLED)
 
 @app.on_callback_query(filters.regex(r"^bm_buy_exec:"))
 async def on_bm_buy_exec(client, callback_query):
@@ -586,7 +586,7 @@ async def on_bm_buy_exec(client, callback_query):
                 f"🎉 **Purchase Successful!**\n\n"
                 f"You have bought **{character.get('name', 'Unknown')}** (ID: `{character.get('id')}`) for **{price:,}** coins from [{seller_name}](tg://user?id={seller_id})!",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back to Market", callback_data=f"bm_page:{back_page}")]]),
-                parse_mode=enums.ParseMode.MARKDOWN
+                parse_mode=enums.ParseMode.DISABLED
             )
             
             # Notify seller
@@ -595,7 +595,7 @@ async def on_bm_buy_exec(client, callback_query):
                     chat_id=seller_id,
                     text=f"💰 **Character Sold!**\n\n"
                          f"Your character **{character.get('name', 'Unknown')}** was bought by [{buyer_name}](tg://user?id={buyer_id}) for **{price:,}** coins!",
-                    parse_mode=enums.ParseMode.MARKDOWN
+                    parse_mode=enums.ParseMode.DISABLED
                 )
             except Exception as e:
                 print(f"Error notifying seller: {e}")
@@ -745,7 +745,7 @@ async def api_buy_character(request):
                     await app.send_message(
                         chat_id=seller_id,
                         text=f"💰 **Character Sold!**\n\nYour character **{character.get('name', 'Unknown')}** (ID: `{character.get('id')}`) was bought by [{buyer_name}](tg://user?id={buyer_id}) for **{price:,}** coins!",
-                        parse_mode=enums.ParseMode.MARKDOWN
+                        parse_mode=enums.ParseMode.DISABLED
                     )
                 except Exception:
                     pass
@@ -928,7 +928,7 @@ async def api_borrow_loan(request):
                          f"• **Daily EMI:** 💰 `{emi_amount:,}` coins\n"
                          f"• **Next Due Date:** {(datetime.utcnow() + timedelta(days=1)).strftime('%Y-%m-%d %H:%M UTC')}\n\n"
                          f"⚠️ *Please ensure you have enough balance every day to avoid EMI bounces.*",
-                    parse_mode=enums.ParseMode.MARKDOWN
+                    parse_mode=enums.ParseMode.DISABLED
                 )
             except Exception as e:
                 print(f"Failed to notify user: {e}")
@@ -1010,7 +1010,7 @@ async def api_repay_loan(request):
                              f"Your loan `{loan_id}` of **{loan['principal']:,} coins** is fully paid off.\n"
                              f"The bank has returned your collateral characters to your harem:\n"
                              f"🌸 **{char_names}**",
-                        parse_mode=enums.ParseMode.MARKDOWN
+                        parse_mode=enums.ParseMode.DISABLED
                     )
                 except Exception as e:
                     print(f"Failed to notify user: {e}")
@@ -1040,7 +1040,7 @@ async def api_repay_loan(request):
                              f"• **Remaining Debt:** 💰 `{loan['total_repayable'] - new_amount_paid:,}` coins\n"
                              f"• **EMIs Remaining:** `{new_emis_remaining}`\n"
                              f"• **Next Due:** {new_next_due.strftime('%Y-%m-%d %H:%M UTC')}",
-                        parse_mode=enums.ParseMode.MARKDOWN
+                        parse_mode=enums.ParseMode.DISABLED
                     )
                 except Exception as e:
                     print(f"Failed to notify user: {e}")
@@ -1115,7 +1115,7 @@ async def process_bank_emis():
                                  f"Your loan `{loan_id}` of **{current_loan['principal']:,} coins** is fully paid off through auto-debit.\n"
                                  f"The bank has returned your collateral characters to your harem:\n"
                                  f"🌸 **{char_names}**",
-                            parse_mode=enums.ParseMode.MARKDOWN
+                            parse_mode=enums.ParseMode.DISABLED
                         )
                     except Exception as e:
                         pass
@@ -1141,7 +1141,7 @@ async def process_bank_emis():
                                  f"• **Remaining Debt:** 💰 `{current_loan['total_repayable'] - new_amount_paid:,}` coins\n"
                                  f"• **EMIs Remaining:** `{new_emis_remaining}`\n"
                                  f"• **Next Due:** {new_next_due.strftime('%Y-%m-%d %H:%M UTC')}",
-                            parse_mode=enums.ParseMode.MARKDOWN
+                            parse_mode=enums.ParseMode.DISABLED
                         )
                     except Exception as e:
                         pass
@@ -1173,7 +1173,7 @@ async def process_bank_emis():
                                  f"The bank has **permanently seized** your collateral characters:\n"
                                  f"🌸 **{char_names}**\n\n"
                                  f"These characters are no longer in the bank and cannot be retrieved.",
-                            parse_mode=enums.ParseMode.MARKDOWN
+                            parse_mode=enums.ParseMode.DISABLED
                         )
                     except Exception as e:
                         pass
@@ -1198,7 +1198,7 @@ async def process_bank_emis():
                                  f"• **Consecutive Bounces:** `{new_bounces}/3`\n"
                                  f"• **Next Retry:** {new_next_due.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
                                  f"🚨 *WARNING: If this bounces 3 times, your collateral will be permanently seized!*",
-                            parse_mode=enums.ParseMode.MARKDOWN
+                            parse_mode=enums.ParseMode.DISABLED
                         )
                     except Exception as e:
                         pass
