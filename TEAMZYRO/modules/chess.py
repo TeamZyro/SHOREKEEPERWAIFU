@@ -94,7 +94,7 @@ async def start_chess_challenge(client, message):
             "Use <code>/chess &lt;bet_amount&gt;</code>\n"
             "Example: <code>/chess 500</code>\n\n"
             "⚠️ Min bet: 100 coins</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
+            parse_mode=enums.ParseMode.DISABLED,
             quote=True
         )
         return
@@ -160,7 +160,7 @@ async def start_chess_challenge(client, message):
         ]
     ])
     
-    sent_msg = await message.reply_text(text, reply_markup=keyboard, parse_mode=enums.ParseMode.HTML)
+    sent_msg = await message.reply_text(text, reply_markup=keyboard, parse_mode=enums.ParseMode.DISABLED)
     await chess_rooms_collection.update_one(
         {"room_id": room_id},
         {"$set": {"message_id": sent_msg.id}}
@@ -191,7 +191,7 @@ async def on_chess_cancel(client, callback_query):
     await callback_query.message.edit_text(
         f"❌ <b>𝖢𝖧𝖤𝖲𝖲 𝖬𝖠𝖳𝖢𝖧 𝖢𝖠𝖭𝖢𝖤𝖫𝖫𝖤𝖣</b>\n\n"
         f"Match challenge cancelled by {callback_query.from_user.mention}.",
-        parse_mode=enums.ParseMode.HTML
+        parse_mode=enums.ParseMode.DISABLED
     )
 
 @app.on_callback_query(filters.regex(r"^chess_join:"))
@@ -285,7 +285,7 @@ async def on_chess_join(client, callback_query):
         [InlineKeyboardButton("♟️ Play Chess", url=webapp_url)]
     ])
     
-    await callback_query.message.edit_text(text, reply_markup=keyboard, parse_mode=enums.ParseMode.HTML)
+    await callback_query.message.edit_text(text, reply_markup=keyboard, parse_mode=enums.ParseMode.DISABLED)
 
 # ----------------- WebApp Server Route Handlers -----------------
 
@@ -627,7 +627,7 @@ async def notify_group_chat(room: dict, text: str):
                 chat_id=chat_id,
                 text=text,
                 reply_to_message_id=message_id,
-                parse_mode=enums.ParseMode.HTML
+                parse_mode=enums.ParseMode.DISABLED
             )
         except Exception as e:
             print(f"Error notifying group chat: {e}")
@@ -697,7 +697,7 @@ async def notify_players(p1: int, p2: int, text: str):
             await ZYRO.send_message(
                 chat_id=player_id,
                 text=text,
-                parse_mode=enums.ParseMode.HTML
+                parse_mode=enums.ParseMode.DISABLED
             )
         except Exception:
             pass # Suppress DM block exceptions
