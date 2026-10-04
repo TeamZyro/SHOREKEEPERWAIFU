@@ -19,8 +19,9 @@ def send_start_message():
         "parse_mode": "MarkdownV2"  # Use MarkdownV2 for proper escaping
     }
     
+    response = None
     try:
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=payload, timeout=20)
         response.raise_for_status()  # Raise exception for HTTP errors
         print("Start message sent successfully.")
     except requests.exceptions.RequestException as e:
