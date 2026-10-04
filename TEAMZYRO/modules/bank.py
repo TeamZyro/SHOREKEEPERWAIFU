@@ -18,7 +18,7 @@ async def bank_command(client, message):
         "• **Seizure Alert**: If an EMI bounces 3 times, your collateral will be permanently seized!\n\n"
         "Use `/loans` to view your active loans directly here, or click the button below to visit the Bank WebApp.",
         reply_markup=reply_markup,
-        parse_mode=enums.ParseMode.MARKDOWN
+        parse_mode=enums.ParseMode.DISABLED
     )
 
 @app.on_message(filters.command("loans"))
@@ -46,4 +46,4 @@ async def loans_command(client, message):
             f"• **Next Due:** `{next_due}`\n"
             f"• **Collateral Pledged:** {char_names}\n\n"
         )
-    await message.reply_text(text, parse_mode=enums.ParseMode.MARKDOWN)
+    await message.reply_text(text, parse_mode=enums.ParseMode.DISABLED)
