@@ -115,6 +115,34 @@ def upload_to_catbox(file_path=None, file_url=None, expires=None, secret=None):
 
     raise Exception(f"Error uploading to Catbox: {last_error}")
 
+def upload_to_telegraph(file_path: str) -> str:
+    """Upload an image to Telegraph as a keyless image-host fallback."""
+    if not file_path or not os.path.isfile(file_path):
+        raise Exception(f"Invalid file path: {file_path}")
+
+    url = "https://telegra.ph/upload"
+    filename = os.path.basename(file_path)
+    with open(file_path, "rb") as file:
+        response = requests.post(
+            url,
+            files={"file": (filename, file, "application/octet-stream")},
+            headers={"User-Agent": "SHOREKEEPERWAIFU/1.0"},
+            timeout=120,
+        )
+
+    if response.status_code != 200:
+        raise Exception(f"HTTP Error: {response.status_code} | {response.text}")
+
+    try:
+        data = response.json()
+        if isinstance(data, list) and data and data[0].get("src"):
+            return "https://telegra.ph" + data[0]["src"]
+    except ValueError:
+        pass
+
+    raise Exception(f"Invalid Telegraph response: {response.text}")
+
+
 IMGBB_API_KEY = os.getenv("IMGBB_API_KEY", "7ff491f6f7076787ff4e5dab51b502a9")
 
 def upload_to_imgbb(file_path: str) -> str:
@@ -257,24 +285,36 @@ async def ul_main(client, message):
                     if not mime.startswith("image/"):
                         is_doc_non_image = True
 
-                if server == "imgbb" and not is_video and not is_doc_non_image:
-                    try:
-                        file_url = upload_to_imgbb(path)
-                    except Exception:
-                        file_url = upload_to_catbox(path)
-                else:
-                    try:
-                        file_url = upload_to_catbox(path)
-                    except Exception as catbox_error:
-                        # Catbox can reject an uploader/IP. For images, keep the
-                        # character upload working by falling back to ImgBB.
-                        if not is_video and not is_doc_non_image:
+                if not is_video and not is_doc_non_image:
+                    # Images: try the selected host first, then use the other
+                    # image host and finally Telegraph. This prevents a Catbox
+                    # uploader/IP rejection from breaking /gupload.
+                    upload_errors = []
+
+                    if server == "imgbb":
+                        try:
+                            file_url = upload_to_imgbb(path)
+                        except Exception as e:
+                            upload_errors.append(f"ImgBB: {e}")
+                            try:
+                                file_url = upload_to_catbox(path)
+                            except Exception as e:
+                                upload_errors.append(f"Catbox: {e}")
+                                file_url = upload_to_telegraph(path)
+                    else:
+                        try:
+                            file_url = upload_to_catbox(path)
+                        except Exception as e:
+                            upload_errors.append(f"Catbox: {e}")
                             try:
                                 file_url = upload_to_imgbb(path)
-                            except Exception:
-                                raise catbox_error
-                        else:
-                            raise
+                            except Exception as e:
+                                upload_errors.append(f"ImgBB: {e}")
+                                file_url = upload_to_telegraph(path)
+                else:
+                    # Videos still require a video-capable host; keep Catbox as
+                    # the primary backend and expose the real error if rejected.
+                    file_url = upload_to_catbox(path)
 
                 # Update character with the image or video URL
                 if reply.photo or reply.document:
@@ -283,18 +323,29 @@ async def ul_main(client, message):
                     character['vid_url'] = file_url
                     # Download and upload thumbnail
                     thumbnail_path = await client.download_media(reply.video.thumbs[0].file_id)
-                    if server == "imgbb":
+                    try:
+                        if server == "imgbb":
+                            try:
+                                thumbnail_url = upload_to_imgbb(thumbnail_path)
+                            except Exception:
+                                try:
+                                    thumbnail_url = upload_to_catbox(thumbnail_path)
+                                except Exception:
+                                    thumbnail_url = upload_to_telegraph(thumbnail_path)
+                        else:
+                            try:
+                                thumbnail_url = upload_to_catbox(thumbnail_path)
+                            except Exception:
+                                try:
+                                    thumbnail_url = upload_to_imgbb(thumbnail_path)
+                                except Exception:
+                                    thumbnail_url = upload_to_telegraph(thumbnail_path)
+                    finally:
                         try:
-                            thumbnail_url = upload_to_imgbb(thumbnail_path)
-                        except Exception:
-                            thumbnail_url = upload_to_catbox(thumbnail_path)
-                    else:
-                        try:
-                            thumbnail_url = upload_to_catbox(thumbnail_path)
-                        except Exception:
-                            thumbnail_url = upload_to_imgbb(thumbnail_path)
+                            os.remove(thumbnail_path)
+                        except OSError:
+                            pass
                     character['thum_url'] = thumbnail_url
-                    os.remove(thumbnail_path)  # Clean up the thumbnail file
 
                 # Send character details to the channel
                 if reply.photo or reply.document:
