@@ -94,8 +94,7 @@ async def start_chess_challenge(client, message):
             "Use <code>/chess &lt;bet_amount&gt;</code>\n"
             "Example: <code>/chess 500</code>\n\n"
             "⚠️ Min bet: 100 coins</blockquote>",
-            parse_mode=enums.ParseMode.DISABLED,
-            quote=True
+            parse_mode=enums.ParseMode.DISABLED
         )
         return
 
