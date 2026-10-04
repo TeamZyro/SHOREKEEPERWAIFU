@@ -20,6 +20,12 @@ def main() -> None:
     # It is intentionally NOT started with run_polling(), because Pyrogram
     # is the single Telegram update receiver for the bot token.
     loop.run_until_complete(application.initialize())
+
+    # PTB's post_init normally runs only with run_polling/run_webhook.
+    # Call it explicitly because this branch intentionally does not start PTB polling.
+    if application.post_init:
+        loop.run_until_complete(application.post_init(application))
+
     loop.run_until_complete(application.start())
 
     ZYRO.start()
