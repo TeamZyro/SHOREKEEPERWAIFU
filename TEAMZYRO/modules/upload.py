@@ -73,18 +73,47 @@ async def find_available_id():
 
 
 def upload_to_catbox(file_path=None, file_url=None, expires=None, secret=None):
-    url = "https://catbox.moe/user/api.php"
-    with open(file_path, "rb") as file:
-        response = requests.post(
-            url,
-            data={"reqtype": "fileupload"},
-            files={"fileToUpload": file}
-        )
-        if response.status_code == 200 and response.text.startswith("https"):
-            return response.text.strip()
-        else:
-            raise Exception(f"Error uploading to Catbox: {response.text}")
+    """Upload a local file to Catbox with authenticated-upload support and retries."""
+    if not file_path or not os.path.isfile(file_path):
+        raise Exception(f"Invalid file path: {file_path}")
 
+    url = "https://catbox.moe/user/api.php"
+    user_hash = os.getenv("CATBOX_USER_HASH", "").strip()
+    filename = os.path.basename(file_path)
+
+    data = {"reqtype": "fileupload"}
+    if user_hash:
+        data["userhash"] = user_hash
+
+    last_error = "Unknown Catbox error"
+    for attempt in range(2):
+        try:
+            with open(file_path, "rb") as file:
+                response = requests.post(
+                    url,
+                    data=data,
+                    files={
+                        "fileToUpload": (
+                            filename,
+                            file,
+                            "application/octet-stream",
+                        )
+                    },
+                    headers={"User-Agent": "SHOREKEEPERWAIFU/1.0"},
+                    timeout=120,
+                )
+
+            result = response.text.strip()
+            if response.status_code == 200 and result.startswith("https://"):
+                return result
+
+            last_error = result or f"HTTP {response.status_code}"
+            if "invalid uploader" not in last_error.lower() and attempt == 0:
+                break
+        except requests.RequestException as exc:
+            last_error = str(exc)
+
+    raise Exception(f"Error uploading to Catbox: {last_error}")
 
 IMGBB_API_KEY = os.getenv("IMGBB_API_KEY", "7ff491f6f7076787ff4e5dab51b502a9")
 
@@ -231,11 +260,21 @@ async def ul_main(client, message):
                 if server == "imgbb" and not is_video and not is_doc_non_image:
                     try:
                         file_url = upload_to_imgbb(path)
-                    except Exception as e:
-                        # Fallback to catbox
+                    except Exception:
                         file_url = upload_to_catbox(path)
                 else:
-                    file_url = upload_to_catbox(path)
+                    try:
+                        file_url = upload_to_catbox(path)
+                    except Exception as catbox_error:
+                        # Catbox can reject an uploader/IP. For images, keep the
+                        # character upload working by falling back to ImgBB.
+                        if not is_video and not is_doc_non_image:
+                            try:
+                                file_url = upload_to_imgbb(path)
+                            except Exception:
+                                raise catbox_error
+                        else:
+                            raise
 
                 # Update character with the image or video URL
                 if reply.photo or reply.document:
@@ -250,7 +289,10 @@ async def ul_main(client, message):
                         except Exception:
                             thumbnail_url = upload_to_catbox(thumbnail_path)
                     else:
-                        thumbnail_url = upload_to_catbox(thumbnail_path)
+                        try:
+                            thumbnail_url = upload_to_catbox(thumbnail_path)
+                        except Exception:
+                            thumbnail_url = upload_to_imgbb(thumbnail_path)
                     character['thum_url'] = thumbnail_url
                     os.remove(thumbnail_path)  # Clean up the thumbnail file
 
