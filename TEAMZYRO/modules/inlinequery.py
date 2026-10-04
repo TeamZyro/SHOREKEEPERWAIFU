@@ -161,12 +161,13 @@ async def bridge_pyrogram_inline_to_ptb(client, inline_query):
         from_user=ptb_user,
         query=inline_query.query or "",
         offset=inline_query.offset or "",
-        chat_type=str(inline_query.chat_type) if inline_query.chat_type else None,
+        chat_type=(getattr(inline_query.chat_type, "value", inline_query.chat_type) if inline_query.chat_type else None),
     )
 
     ptb_update = Update(
         update_id=abs(hash(inline_query.id)) % 2147483647,
         inline_query=ptb_inline_query,
     )
+    ptb_update.set_bot(application.bot)
 
     await application.update_queue.put(ptb_update)
