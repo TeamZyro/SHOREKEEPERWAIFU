@@ -1,7 +1,7 @@
 import requests
-from TEAMZYRO import TOKEN
+from TEAMZYRO import TOKEN, OWNER_ID
 
-CHAT_ID = -100
+CHAT_ID = OWNER_ID
 BOT_USERNAME = "@Gaming\\_X\\_World\\_Bot"  # Escaped underscores for bot username
 OWNER_NAME = "@sukuna\\_dev"  # Escaped underscores for owner's username
 IMAGE_URL = "https://files.catbox.moe/ehv507.jpeg"
