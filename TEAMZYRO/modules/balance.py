@@ -1,6 +1,7 @@
 from TEAMZYRO import *
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from pyrogram.errors import PeerIdInvalid
 import html
 import time
 from datetime import datetime, timedelta
@@ -126,7 +127,7 @@ async def balance(client: Client, message: Message):
         f"{html.escape(message.from_user.first_name)} \n◈⌠ {user_balance} coins⌡\n"
         f"◈ ⌠ {user_tokens} Tokens⌡"
     )
-    await message.reply_text(response, reply_to_message_id=False)
+    await message.reply_text(response)
 
 @app.on_message(filters.command("pay"))
 async def pay(client: Client, message: Message):
@@ -175,6 +176,18 @@ async def pay(client: Client, message: Message):
         await message.reply_text("Recipient not found. Reply to a user or provide a valid user ID/username.")
         return
 
+    # Verify that Telegram knows this peer before changing balances.
+    # This prevents PEER_ID_INVALID after the sender has already been charged.
+    try:
+        recipient_user = await client.get_users(recipient_id)
+        if not recipient_name:
+            recipient_name = recipient_user.first_name or str(recipient_id)
+    except PeerIdInvalid:
+        await message.reply_text(
+            "❌ I can't contact this user on Telegram yet. Ask them to start/interact with the bot first, then try /pay again."
+        )
+        return
+
     sender_balance, _ = await get_balance(sender_id)
     if sender_balance < amount:
         await message.reply_text("Insufficient balance.")
@@ -195,11 +208,16 @@ async def pay(client: Client, message: Message):
         f"💰 Your New Balance: {updated_sender_balance} coins"
     )
 
-    await client.send_message(
-        chat_id=recipient_id,
-        text=f"🎉 You received {amount} coins from {sender_display}!\n"
-        f"💰 Your New Balance: {updated_recipient_balance} coins"
-    )
+    try:
+        await client.send_message(
+            chat_id=recipient_id,
+            text=f"🎉 You received {amount} coins from {sender_display}!\n"
+            f"💰 Your New Balance: {updated_recipient_balance} coins"
+        )
+    except PeerIdInvalid:
+        await message.reply_text(
+            "⚠️ Payment completed, but Telegram could not deliver the notification to the recipient. Their balance was updated."
+        )
 
 @app.on_message(filters.command("kill"))
 @require_power("VIP")
