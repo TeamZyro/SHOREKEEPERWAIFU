@@ -6,7 +6,7 @@ import html
 from TEAMZYRO import app as Client
 from TEAMZYRO import user_collection, top_global_groups_collection
 
-PHOTO_URL = ["https://files.catbox.moe/20xca5.jpg"]  
+PHOTO_URL = ["https://ibb.co/VY9Fwqmp"]  
 
 @Client.on_message(filters.command("rank"))
 async def rank(client, message):
@@ -15,7 +15,7 @@ async def rank(client, message):
     leaderboard_data.sort(key=lambda x: len(x.get('characters', [])), reverse=True)
     leaderboard_data = leaderboard_data[:10]
 
-    leaderboard_message = "<b>TOP 10 USERS WITH MOST CHARACTERS</b>\n\n"
+    leaderboard_message = "🏆 <b>USER RANKING</b>\n\n"
     for i, user in enumerate(leaderboard_data, start=1):
         user_id = user.get('id', 'Unknown')
         first_name = html.escape(user.get('first_name', 'Unknown'))[:15] + '...'
@@ -34,7 +34,7 @@ async def rank(client, message):
     ]
 
     await message.reply_photo(
-        photo=random.choice(PHOTO_URL),
+        photo=PHOTO_URL[0],
         caption=leaderboard_message,
         parse_mode=enums.ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup(buttons)
@@ -66,7 +66,7 @@ async def top_callback(client, callback_query):
     leaderboard_data.sort(key=lambda x: len(x.get('characters', [])), reverse=True)
     leaderboard_data = leaderboard_data[:10]
 
-    caption = "<b>TOP 10 USERS WITH MOST CHARACTERS</b>\n\n"
+    caption = "🏆 <b>USER RANKING</b>\n\n"
     for i, user in enumerate(leaderboard_data, start=1):
         user_id = user.get('id', 'Unknown')
         first_name = html.escape(user.get('first_name', 'Unknown'))[:15] + '...'
@@ -85,7 +85,7 @@ async def top_group_callback(client, callback_query):
     ])
     leaderboard_data = await cursor.to_list(length=10)
     
-    caption = "<b>TOP 10 GROUPS WHO GUESSED MOST CHARACTERS</b>\n\n"
+    caption = "🏆 <b>GROUP RANKING</b>\n\n"
     for i, group in enumerate(leaderboard_data, start=1):
         group_name = html.escape(group.get('group_name', 'Unknown'))[:15] + '...'
         count = group['count']
@@ -98,7 +98,7 @@ async def mtop_callback(client, callback_query):
     await asyncio.sleep(1)
     top_users = await user_collection.find().sort("balance", -1).limit(10).to_list(length=10)
 
-    caption = "<b>MTOP LEADERBOARD</b>\n\n🏆 Tᴏᴘ 10 Uꜱᴇʀs ʙʏ Cᴏɪɴs:\n\n"
+    caption = "💰 <b>COINS RANKING</b>\n\n"
     for rank, user in enumerate(top_users, start=1):
         user_id = user.get("id", "Unknown")
         first_name = user.get("first_name", "Unknown")
@@ -112,7 +112,7 @@ async def tokens_callback(client, callback_query):
     await asyncio.sleep(1)
     top_users = await user_collection.find().sort("tokens", -1).limit(10).to_list(length=10)
 
-    caption = "<b>Tokens LEADERBOARD</b>\n\n🏆 Tᴏᴘ 10 Uꜱᴇʀs ʙʏ Tokens:\n\n"
+    caption = "🪙 <b>TOKEN RANKING</b>\n\n"
     for rank, user in enumerate(top_users, start=1):
         user_id = user.get("id", "Unknown")
         first_name = user.get("first_name", "Unknown")
