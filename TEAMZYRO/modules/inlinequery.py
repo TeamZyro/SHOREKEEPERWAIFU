@@ -128,7 +128,10 @@ async def inlinequery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 )
             )
 
-    await inline_query.answer(
+    # Use the Application bot directly instead of InlineQuery.answer().
+    # The bridged InlineQuery object is synthetic and may not retain PTB's bot association.
+    await context.bot.answer_inline_query(
+        inline_query_id=inline_query.id,
         results=results,
         next_offset=next_offset,
         cache_time=5,
