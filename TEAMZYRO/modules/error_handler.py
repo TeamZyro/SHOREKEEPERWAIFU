@@ -136,9 +136,14 @@ def _build_ptb_report(error: Exception, update) -> str:
 
 
 @app.on_error()
-async def global_pyrogram_error(client, error: Exception, update):
-    """Report unexpected Pyrogram handler errors to the owner."""
+async def global_pyrogram_error(client, error: Exception, update_handler, update, users, chats):
+    """Report unexpected Pyrogram handler errors to the owner.
+
+    Kurigram calls ErrorHandler callbacks with six arguments:
+    client, exception, failed handler, raw update, users and chats.
+    """
     report = _build_pyrogram_report(error, update)
+    report = f"Failed Handler: {type(update_handler).__name__}\n" + report
     await _send_report(client.send_message, report)
 
 
