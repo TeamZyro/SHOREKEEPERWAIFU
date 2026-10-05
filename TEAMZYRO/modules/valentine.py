@@ -4,7 +4,6 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, timedelta
 from TEAMZYRO import ZYRO as bot
 from TEAMZYRO import user_collection, collection, SUPPORT_CHAT_ID as chat, SUPPORT_CHAT
-from TEAMZYRO.unit.rich_ui import rich_button, rich_message
 
 async def get_unique_characters(user_id, target_rarities):
     try:
@@ -30,12 +29,12 @@ async def valentine(_, message: t.Message):
         mention = message.from_user.mention
 
         if str(message.chat.id) != chat:
-            return await bot.send_rich_message(
-                chat_id=message.chat.id,
-                rich_message=rich_message(
-                    "<p>🔔 ᴊᴏɪɴ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴄʟᴀɪᴍ ʏᴏᴜʀ ᴅᴀɪʟʏ ᴄʜᴀʀᴀᴄᴛᴇʀ</p>",
-                    buttons=[[rich_button("Join Here", url=SUPPORT_CHAT, style="primary")]],
-                ),
+            join_button = InlineKeyboardMarkup([
+                [InlineKeyboardButton("Join Here", url=SUPPORT_CHAT)]
+            ])
+            return await message.reply_text(
+                "🔔 ᴊᴏɪɴ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴄʟᴀɪᴍ ʏᴏᴜʀ ᴅᴀɪʟʏ ᴄʜᴀʀᴀᴄᴛᴇʀ",
+                reply_markup=join_button
             )
 
         # Get current date
