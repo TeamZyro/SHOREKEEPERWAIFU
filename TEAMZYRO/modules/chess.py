@@ -155,7 +155,7 @@ async def start_chess_challenge(client, message):
     sent_msg = await client.send_rich_message(
         chat_id=message.chat.id,
         rich_message=rich_message(
-            f"<h2>♟️ CHESS MATCH CHALLENGE</h2><p>{text.replace(chr(10), "<br>")}</p>",
+            "<h2>♟️ CHESS MATCH CHALLENGE</h2><p>" + text.replace("\n", "<br>") + "</p>",
             buttons=[[
                 rich_button("🤝 Join Match", callback_data=f"chess_join:{room_id}", style="success"),
                 rich_button("❌ Cancel", callback_data=f"chess_cancel:{room_id}", style="danger"),
@@ -284,7 +284,7 @@ async def on_chess_join(client, callback_query):
     
     await callback_query.message.edit_text(
         rich_message=rich_message(
-            f"<h2>🎮 CHESS MATCH STARTED!</h2><p>{text.replace(chr(10), "<br>")}</p>",
+            "<h2>🎮 CHESS MATCH STARTED!</h2><p>" + text.replace("\n", "<br>") + "</p>",
             buttons=[[rich_button("♟️ Play Chess", url=webapp_url, style="primary")]],
         )
     )
