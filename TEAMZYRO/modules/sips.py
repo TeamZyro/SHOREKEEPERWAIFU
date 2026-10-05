@@ -1,5 +1,6 @@
 # TEAMZYRO/commands/search_characters.py
 from TEAMZYRO import app, collection, rarity_map2 as rarity_map
+from TEAMZYRO.unit.rich_ui import rich_button, rich_message
 from pyrogram import Client, filters, enums
 from pyrogram.enums import ParseMode
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -43,18 +44,21 @@ async def handle_search(client, message, query=None, page=1, is_callback=False):
         if skip + per_page < total_characters:
             buttons.append(InlineKeyboardButton("➡️ Next", callback_data=f"sips:{query}:{page + 1}"))
 
-        # Edit the message if it's a callback query, otherwise send a new one
+        # Use Rich Message buttons for pagination.
+        rich_buttons = []
+        if page > 1:
+            rich_buttons.append(rich_button("⬅️ Back", callback_data=f"sips:{query}:{page - 1}", style="primary"))
+        if skip + per_page < total_characters:
+            rich_buttons.append(rich_button("➡️ Next", callback_data=f"sips:{query}:{page + 1}", style="primary"))
+        rows = [rich_buttons] if rich_buttons else []
+
+        rich_html = "<h2>🔎 Character Search</h2><p>" + response.replace(chr(10), "<br>") + "</p>"
         if is_callback:
-            await message.edit_text(
-                response,
-                reply_markup=InlineKeyboardMarkup([buttons]) if buttons else None,
-                parse_mode=ParseMode.MARKDOWN
-            )
+            await message.edit_text(rich_message=rich_message(rich_html, buttons=rows))
         else:
-            await message.reply_text(
-                response,
-                reply_markup=InlineKeyboardMarkup([buttons]) if buttons else None,
-                parse_mode=ParseMode.MARKDOWN
+            await client.send_rich_message(
+                chat_id=message.chat.id,
+                rich_message=rich_message(rich_html, buttons=rows),
             )
 
     except Exception as e:
