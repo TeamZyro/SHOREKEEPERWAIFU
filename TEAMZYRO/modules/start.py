@@ -40,11 +40,17 @@ async def generate_start_message(client, message):
     )
 
     buttons = [
-        [InlineKeyboardButton("Aᴅᴅ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ", url=f"https://t.me/{bot_user.username}?startgroup=true")],
-        [InlineKeyboardButton("Sᴜᴘᴘᴏʀᴛ", url=SUPPORT_CHAT), 
-         InlineKeyboardButton("Cʜᴀɴɴᴇʟ", url=UPDATE_CHAT)],
-        [InlineKeyboardButton("Hᴇʟᴘ", callback_data="open_help")],
-        [InlineKeyboardButton("Owner", url=f"https://t.me/xeno_kakarot")],
+        [InlineKeyboardButton(
+            "Aᴅᴅ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ",
+            url=f"https://t.me/{bot_user.username}?startgroup=true",
+            style="success",
+        )],
+        [
+            InlineKeyboardButton("Sᴜᴘᴘᴏʀᴛ", url=SUPPORT_CHAT, style="primary"),
+            InlineKeyboardButton("Cʜᴀɴɴᴇʟ", url=UPDATE_CHAT, style="primary"),
+        ],
+        [InlineKeyboardButton("Hᴇʟᴘ", callback_data="open_help", style="primary")],
+        [InlineKeyboardButton("Owner", url="https://t.me/xeno_kakarot", style="danger")],
     ]
     
     return caption, buttons
