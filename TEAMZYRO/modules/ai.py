@@ -35,8 +35,6 @@ async def ai_command(client: Client, message: Message):
     # IMPORTANT: Never use synchronous requests.post() inside the Telegram event loop.
     # A slow NVIDIA response would otherwise block the entire bot.
     try:
-        await client.send_chat_action(message.chat.id, "typing")
-
         payload = {
             "model": NVIDIA_MODEL,
             "messages": [
