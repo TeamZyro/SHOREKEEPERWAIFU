@@ -6,7 +6,7 @@ from pyrogram.types import Message
 from TEAMZYRO import app
 
 NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
-NVIDIA_MODEL = os.getenv("NVIDIA_AI_MODEL", "meta/llama-3.3-70b-instruct")
+NVIDIA_MODEL = os.getenv("NVIDIA_AI_MODEL", "z-ai/glm-5.3")
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
 
 
