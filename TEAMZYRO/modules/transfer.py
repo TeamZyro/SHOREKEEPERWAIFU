@@ -109,20 +109,16 @@ async def transfer_collection(client: Client, message: Message):
         f"Click the appropriate button below to proceed or cancel. This prompt will expire in 60 seconds."
     )
 
-    await client.send_rich_message(
-        chat_id=message.chat.id,
-        rich_message=rich_message(
-            "<h2>⚠️ Confirm Character Transfer?</h2>"
-            f"<p>👤 From: <code>{user_id}</code> (has {len(user_chars)} characters)<br>"
-            f"➡️ To: <code>{owner_id}</code><br>"
-            f"🆔 Transfer ID: <code>{transfer_id}</code><br><br>"
-            "Click the appropriate button below to proceed or cancel. This prompt will expire in 60 seconds.</p>",
-            buttons=[[
-                rich_button("✅ Confirm Transfer", callback_data=f"confirm_tr:{transfer_id}", style="success"),
-                rich_button("❌ Cancel", callback_data=f"cancel_tr:{transfer_id}", style="danger"),
-            ]],
-        ),
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("✅ Confirm Transfer", callback_data=f"confirm_tr:{transfer_id}"),
+                InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_tr:{transfer_id}")
+            ]
+        ]
     )
+
+    await message.reply_text(text, reply_markup=keyboard, quote=True)
 
 
 # Step 2: Handle confirmation (ONE-WAY ONLY)
