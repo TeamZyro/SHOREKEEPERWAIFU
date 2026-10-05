@@ -30,7 +30,7 @@ def main() -> None:
 
     # Ensure the Pyrogram client explicitly uses the same loop as Motor/PTB.
     ZYRO.loop = loop
-    loop.run_until_complete(ZYRO.start())
+    ZYRO.start()
 
     LOGGER("TEAMZYRO").info(
         "╔═════ஜ۩۞۩ஜ════╗\n  ☠︎︎MADE BY TEAMZYRO☠︎︎\n╚═════ஜ۩۞۩ஜ════╝"
@@ -41,7 +41,7 @@ def main() -> None:
         idle()
     finally:
         if ZYRO.is_connected:
-            loop.run_until_complete(ZYRO.stop())
+            ZYRO.stop()
 
         if application.running:
             loop.run_until_complete(application.stop())
