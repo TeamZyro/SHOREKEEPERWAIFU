@@ -1,24 +1,24 @@
 from pyrogram import filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from TEAMZYRO import app, db
-from TEAMZYRO.unit.rich_ui import rich_button, rich_message
 
 @app.on_message(filters.command("bank"))
 async def bank_command(client, message):
     bot_username = client.me.username if client.me else "shorekeeper_RoBot"
-    await client.send_rich_message(
-        chat_id=message.chat.id,
-        rich_message=rich_message(
-            "<h2>🏦 WELCOME TO SHOREKEEPER BANK 🏦</h2>"
-            "<p>Here you can take coin loans by pledging your characters as collateral.</p>"
-            "<b>Loan Rules:</b><br>"
-            "• <b>LTV (Loan-to-Value):</b> Get up to <b>60%</b> value of your character's rarity price.<br>"
-            "• <b>Interest:</b> Flat <b>10%</b> interest on borrow amount.<br>"
-            "• <b>Repayment:</b> 5 Daily EMIs (equally split over 5 days).<br>"
-            "• <b>Seizure Alert:</b> If an EMI bounces 3 times, your collateral will be permanently seized!<br><br>"
-            "Use /loans to view your active loans directly here, or open the Bank WebApp.",
-            buttons=[[rich_button("🏦 Open Bank WebApp", url=f"https://t.me/{bot_username}?startapp=true", style="primary")]],
-        ),
+    reply_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🏦 Open Bank WebApp", url=f"https://t.me/{bot_username}?startapp=true")]
+    ])
+    await message.reply_text(
+        "🏦 **WELCOME TO SHOREKEEPER BANK** 🏦\n\n"
+        "Here you can take coin loans by pledging your characters as collateral.\n\n"
+        "**Loan Rules:**\n"
+        "• **LTV (Loan-to-Value)**: Get up to **60%** value of your character's rarity price.\n"
+        "• **Interest**: Flat **10%** interest on borrow amount.\n"
+        "• **Repayment**: 5 Daily EMIs (equally split over 5 days).\n"
+        "• **Seizure Alert**: If an EMI bounces 3 times, your collateral will be permanently seized!\n\n"
+        "Use `/loans` to view your active loans directly here, or click the button below to visit the Bank WebApp.",
+        reply_markup=reply_markup,
+        parse_mode=enums.ParseMode.DISABLED
     )
 
 @app.on_message(filters.command("loans"))
