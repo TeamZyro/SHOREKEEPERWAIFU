@@ -163,16 +163,20 @@ async def show_character(client, msg, user_id):
 
     await msg.delete()
 
-    if is_video(char["img_url"]):
+    image_url = char.get("img_url") or char.get("image") or char.get("url")
+    if not image_url:
+        return await client.send_message(msg.chat.id, "❌ This character has no valid image/media URL.")
+
+    if is_video(image_url):
         await msg.reply_video(
-            video=char["img_url"],
+            video=image_url,
             caption=caption,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=ParseMode.HTML
         )
     else:
         await msg.reply_photo(
-            photo=char["img_url"],
+            photo=image_url,
             caption=caption,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=ParseMode.HTML
