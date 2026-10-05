@@ -5,7 +5,8 @@ import time
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from TEAMZYRO import *
-from TEAMZYRO.unit.zyro_help import HELP_DATA  
+from TEAMZYRO.unit.zyro_help import HELP_DATA
+from TEAMZYRO.unit.rich_ui import rich_button, rich_message  
 
 # 🔹 Function to Calculate Uptime
 START_TIME = time.time()
@@ -40,19 +41,14 @@ async def generate_start_message(client, message):
     )
 
     buttons = [
-        [InlineKeyboardButton(
-            "Aᴅᴅ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ",
-            url=f"https://t.me/{bot_user.username}?startgroup=true",
-            style="success",
-        )],
+        [rich_button("Aᴅᴅ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ", url=f"https://t.me/{bot_user.username}?startgroup=true", style="success")],
         [
-            InlineKeyboardButton("Sᴜᴘᴘᴏʀᴛ", url=SUPPORT_CHAT, style="primary"),
-            InlineKeyboardButton("Cʜᴀɴɴᴇʟ", url=UPDATE_CHAT, style="primary"),
+            rich_button("Sᴜᴘᴘᴏʀᴛ", url=SUPPORT_CHAT, style="primary"),
+            rich_button("Cʜᴀɴɴᴇʟ", url=UPDATE_CHAT, style="primary"),
         ],
-        [InlineKeyboardButton("Hᴇʟᴘ", callback_data="open_help", style="primary")],
-        [InlineKeyboardButton("Owner", url="https://t.me/xeno_kakarot", style="danger")],
+        [rich_button("Hᴇʟᴘ", callback_data="open_help", style="primary")],
+        [rich_button("Owner", url="https://t.me/xeno_kakarot", style="danger")],
     ]
-    
     return caption, buttons
 
 # 🔹 Function to Generate Group Start Message & Buttons
@@ -63,22 +59,28 @@ async def generate_group_start_message(client):
         f"<blockquote>𝖨 𝗌𝗉𝖺𝗐𝗇 𝗐𝖺𝗂𝖿𝗎𝗌 𝗂𝗇 𝗒𝗈𝗎𝗋 𝗀𝗋𝗈𝗎𝗉 𝗐𝗂𝗍𝗁 𝗆𝖾𝗌𝗌𝖺𝗀𝖾 𝖼𝗈𝗎𝗇𝗍𝗌 𝖿𝗈𝗋 𝗉𝗅𝖺𝗒𝖾𝗋𝗌 𝗍𝗈 /guess.\n"
         f"𝖴𝗌𝖾 /help 𝖿𝗈ʀ ᴍᴏʀᴇ ɪɴғᴏ.</blockquote>"
     )
-    buttons = [
-        [
-            InlineKeyboardButton("Aᴅᴅ Mᴇ", url=f"https://t.me/{bot_user.username}?startgroup=true"),
-            InlineKeyboardButton("Sᴜᴘᴘᴏʀᴛ", url=SUPPORT_CHAT)
-        ]
-    ]
+    buttons = [[
+        rich_button("Aᴅᴅ Mᴇ", url=f"https://t.me/{bot_user.username}?startgroup=true", style="success"),
+        rich_button("Sᴜᴘᴘᴏʀᴛ", url=SUPPORT_CHAT, style="primary"),
+    ]]
     return caption, buttons
 
 # 🔹 Send Media (Helper)
 async def send_media_message(message, media, caption, buttons):
-    if media.lower().endswith(('.png', '.jpg', '.jpeg')):
-        await message.reply_photo(photo=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
-    elif media.lower().endswith('.gif'):
-        await message.reply_animation(animation=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
+    """Send the start UI as one Rich Message with embedded media and Rich buttons."""
+    safe_media = str(media).replace("&", "&amp;").replace('"', "&quot;")
+    if media.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+        media_html = f'<img src="{safe_media}"/>'
     else:
-        await message.reply_video(video=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
+        media_html = f'<video src="{safe_media}"></video>'
+
+    return await message._client.send_rich_message(
+        chat_id=message.chat.id,
+        rich_message=rich_message(
+            media_html + caption,
+            buttons=buttons,
+        ),
+    )
 
 # 🔹 Private Start Command Handler
 @app.on_message(filters.command("start") & filters.private)
@@ -117,7 +119,7 @@ def find_help_modules():
     buttons = []
     for module_name, module_data in HELP_DATA.items():
         button_name = module_data.get("HELP_NAME", "Unknown")
-        buttons.append(InlineKeyboardButton(button_name, callback_data=f"help_{module_name}"))
+        buttons.append(rich_button(button_name, callback_data=f"help_{module_name}", style="primary"))
     return [buttons[i : i + 3] for i in range(0, len(buttons), 3)]
 
 # 🔹 Help Button Click Handler
@@ -125,7 +127,7 @@ def find_help_modules():
 async def show_help_menu(client, query: CallbackQuery):
     time.sleep(1)
     buttons = find_help_modules()
-    buttons.append([InlineKeyboardButton("⬅ Back", callback_data="back_to_home")])
+    buttons.append([rich_button("⬅ Back", callback_data="back_to_home", style="link")])
 
     text = (
         "⚙️ <b>𝖧𝖤𝖫𝖯 𝖬𝖤𝖭𝖴</b>\n\n"
@@ -134,17 +136,11 @@ async def show_help_menu(client, query: CallbackQuery):
     )
 
     try:
-        await query.message.edit_caption(
-            caption=text,
-            reply_markup=InlineKeyboardMarkup(buttons),
-            parse_mode=enums.ParseMode.HTML
+        await query.message.edit_text(
+            rich_message=rich_message(text, buttons=buttons)
         )
     except Exception:
-        await query.message.edit_text(
-            text=text,
-            reply_markup=InlineKeyboardMarkup(buttons),
-            parse_mode=enums.ParseMode.HTML
-        )
+        await query.message.edit_text(rich_message=rich_message(text, buttons=buttons))
 
 # 🔹 Individual Module Help Handler
 @app.on_callback_query(filters.regex(r"^help_(.+)"))
@@ -154,22 +150,16 @@ async def show_help(client, query: CallbackQuery):
     try:
         module_data = HELP_DATA.get(module_name, {})
         help_text = module_data.get("HELP", "Is module ka koi help nahi hai.")
-        buttons = [[InlineKeyboardButton("⬅ Back", callback_data="open_help")]]
+        buttons = [[rich_button("⬅ Back", callback_data="open_help", style="link")]]
         
         full_text = f"<b>{module_name.upper()} Help:</b>\n\n{help_text}"
         
         try:
-            await query.message.edit_caption(
-                caption=full_text,
-                reply_markup=InlineKeyboardMarkup(buttons),
-                parse_mode=enums.ParseMode.HTML
+            await query.message.edit_text(
+                rich_message=rich_message(full_text, buttons=buttons)
             )
         except Exception:
-            await query.message.edit_text(
-                text=full_text,
-                reply_markup=InlineKeyboardMarkup(buttons),
-                parse_mode=enums.ParseMode.HTML
-            )
+            await query.message.edit_text(rich_message=rich_message(full_text, buttons=buttons))
     except Exception as e:
         await query.answer("Help load karne me error aayi!")
 
@@ -179,14 +169,8 @@ async def back_to_home(client, query: CallbackQuery):
     time.sleep(1)
     caption, buttons = await generate_start_message(client, query.message)
     try:
-        await query.message.edit_caption(
-            caption=caption,
-            reply_markup=InlineKeyboardMarkup(buttons),
-            parse_mode=enums.ParseMode.HTML
+        await query.message.edit_text(
+            rich_message=rich_message(caption, buttons=buttons)
         )
     except Exception:
-        await query.message.edit_text(
-            text=caption,
-            reply_markup=InlineKeyboardMarkup(buttons),
-            parse_mode=enums.ParseMode.HTML
-        )
+        await query.message.edit_text(rich_message=rich_message(caption, buttons=buttons))
