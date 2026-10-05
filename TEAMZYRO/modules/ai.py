@@ -1,5 +1,6 @@
+import asyncio
 import os
-import requests
+import aiohttp
 from pyrogram import Client, filters, enums
 from pyrogram.types import Message
 
@@ -8,11 +9,13 @@ from TEAMZYRO import app
 NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_MODEL = os.getenv("NVIDIA_AI_MODEL", "z-ai/glm-5.3")
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
+AI_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=8, sock_read=25)
 
 
 @app.on_message(filters.command("ai"))
 async def ai_command(client: Client, message: Message):
-    prompt = message.text.split(maxsplit=1)[1].strip() if message.text and len(message.text.split(maxsplit=1)) > 1 else ""
+    parts = message.text.split(maxsplit=1) if message.text else []
+    prompt = parts[1].strip() if len(parts) > 1 else ""
 
     if not prompt:
         await message.reply_text(
@@ -29,56 +32,68 @@ async def ai_command(client: Client, message: Message):
         )
         return
 
+    # IMPORTANT: Never use synchronous requests.post() inside the Telegram event loop.
+    # A slow NVIDIA response would otherwise block the entire bot.
     try:
-        response = requests.post(
-            NVIDIA_API_URL,
-            headers={
-                "Authorization": f"Bearer {NVIDIA_API_KEY}",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": NVIDIA_MODEL,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are Shorekeeper AI. Answer clearly, helpfully, and concisely. Match the user's language when practical.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                "temperature": 0.6,
-                "top_p": 0.9,
-                "max_tokens": 2048,
-                "stream": False,
-            },
-            timeout=60,
-        )
+        await client.send_chat_action(message.chat.id, "typing")
 
-        if response.status_code != 200:
-            try:
-                error_detail = response.json().get("detail", response.text)
-            except Exception:
-                error_detail = response.text
-            print(f"NVIDIA AI API error {response.status_code}: {error_detail}")
+        payload = {
+            "model": NVIDIA_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are Shorekeeper AI. Answer clearly, helpfully and concisely. "
+                        "Match the user's language when practical."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.6,
+            "top_p": 0.9,
+            "max_tokens": 1024,
+            "stream": False,
+        }
+
+        async with aiohttp.ClientSession(timeout=AI_TIMEOUT) as session:
+            async with session.post(
+                NVIDIA_API_URL,
+                headers={
+                    "Authorization": f"Bearer {NVIDIA_API_KEY}",
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            ) as response:
+                data = await response.json(content_type=None)
+
+        if response.status != 200:
+            error_detail = data.get("detail", data.get("message", "Unknown NVIDIA API error"))
+            print(f"NVIDIA AI API error {response.status}: {error_detail}")
             await message.reply_text(
                 "❌ AI request failed. Please try again later.",
                 parse_mode=enums.ParseMode.HTML,
             )
             return
 
-        data = response.json()
-        answer = data["choices"][0]["message"]["content"].strip()
+        choices = data.get("choices") or []
+        answer = (
+            choices[0].get("message", {}).get("content", "").strip()
+            if choices else ""
+        )
 
         if not answer:
             await message.reply_text("❌ AI returned an empty response.")
             return
 
-        # Telegram messages have a practical text-size limit; split long AI answers.
         for start in range(0, len(answer), 4000):
             await message.reply_text(answer[start:start + 4000])
 
-    except requests.Timeout:
-        await message.reply_text("⏳ AI request timed out. Please try again.")
+    except asyncio.TimeoutError:
+        await message.reply_text("⏳ AI took too long to respond. Please try again.")
+    except aiohttp.ClientError as exc:
+        print(f"NVIDIA AI connection error: {exc}")
+        await message.reply_text("🌐 AI service connection failed. Please try again.")
     except Exception as exc:
         print(f"NVIDIA AI command error: {exc}")
         await message.reply_text("❌ An error occurred while contacting the AI.")
