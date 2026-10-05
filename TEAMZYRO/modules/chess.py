@@ -152,16 +152,14 @@ async def start_chess_challenge(client, message):
         f"<i>Click the button below to join the match! Both players' bets will be escrowed.</i>"
     )
     
-    sent_msg = await client.send_rich_message(
-        chat_id=message.chat.id,
-        rich_message=rich_message(
-            "<h2>♟️ CHESS MATCH CHALLENGE</h2><p>" + text.replace("\n", "<br>") + "</p>",
-            buttons=[[
-                rich_button("🤝 Join Match", callback_data=f"chess_join:{room_id}", style="success"),
-                rich_button("❌ Cancel", callback_data=f"chess_cancel:{room_id}", style="danger"),
-            ]],
-        ),
-    )
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🤝 Join Match", callback_data=f"chess_join:{room_id}"),
+            InlineKeyboardButton("❌ Cancel", callback_data=f"chess_cancel:{room_id}")
+        ]
+    ])
+    
+    sent_msg = await message.reply_text(text, reply_markup=keyboard, parse_mode=enums.ParseMode.DISABLED)
     await chess_rooms_collection.update_one(
         {"room_id": room_id},
         {"$set": {"message_id": sent_msg.id}}
@@ -282,12 +280,11 @@ async def on_chess_join(client, callback_query):
         f"<i>Click the button below to open the board inside Telegram and play! If you close the app, you can reconnect.</i>"
     )
     
-    await callback_query.message.edit_text(
-        rich_message=rich_message(
-            "<h2>🎮 CHESS MATCH STARTED!</h2><p>" + text.replace("\n", "<br>") + "</p>",
-            buttons=[[rich_button("♟️ Play Chess", url=webapp_url, style="primary")]],
-        )
-    )
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("♟️ Play Chess", url=webapp_url)]
+    ])
+    
+    await callback_query.message.edit_text(text, reply_markup=keyboard, parse_mode=enums.ParseMode.DISABLED)
 
 # ----------------- WebApp Server Route Handlers -----------------
 
