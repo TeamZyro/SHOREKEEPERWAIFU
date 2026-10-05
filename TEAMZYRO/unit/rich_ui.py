@@ -1,32 +1,59 @@
-from pyrogram import enums
-from pyrogram.types import InputRichMessage, InputRichBlockParagraph, InputRichBlockSectionHeading, InputRichBlockButtons, RichMessageButton
+from html import escape
+
+from pyrogram.types import InputRichMessage
 
 
-def rich_button(text, callback_data=None, url=None, style=None):
-    # Kurigram exposes the Bot API button style enum as ButtonStyle.
-    # Keep string styles accepted by callers while avoiding import-time crashes
-    # when the enum name differs between Kurigram releases.
-    if style is None:
-        style = enums.ButtonStyle.PRIMARY
-    elif isinstance(style, str):
-        style = getattr(enums.ButtonStyle, style.upper(), style)
+def rich_button(text, callback_data=None, url=None, style="primary"):
+    """Build a Telegram Rich Message button using the Bot API 10.3 HTML format."""
+    button_type = "url" if url else "callback_data"
+    data = url if url else callback_data
 
-    return RichMessageButton(text=text, callback_data=callback_data, url=url, style=style)
+    if not data:
+        raise ValueError("Rich button requires callback_data or url")
+
+    safe_text = escape(str(text))
+    safe_data = escape(str(data), quote=True)
+    safe_style = escape(str(style or "primary"), quote=True)
+
+    return (
+        f'<tg-button type="{button_type}" '
+        f'style="{safe_style}" data="{safe_data}">'
+        f"{safe_text}</tg-button>"
+    )
+
+
+def rich_button_row(buttons, align="center"):
+    """Build one Rich Message button row."""
+    if not buttons:
+        return ""
+
+    safe_align = escape(str(align), quote=True)
+    return (
+        f'<tg-button-row align="{safe_align}">'
+        + "".join(buttons)
+        + "</tg-button-row>"
+    )
 
 
 def rich_card(title, body, buttons=None):
-    blocks = [
-        InputRichBlockSectionHeading(text=title, size=2),
-        InputRichBlockParagraph(text=body),
-    ]
+    """Build a Rich Message using the same HTML button pattern as RonovaUB."""
+    html = (
+        f"<h2>{escape(str(title))}</h2>"
+        f"<p>{escape(str(body)).replace(chr(10), '<br>')}</p>"
+    )
+
     for row in buttons or []:
-        blocks.append(InputRichBlockButtons(buttons=row, align=enums.BlockAlignment.CENTER))
-    return InputRichMessage(blocks=blocks)
+        html += rich_button_row(row)
+
+    return InputRichMessage(html=html)
 
 
 async def send_rich_card(client, chat_id, title, body, buttons=None, fallback=None):
     try:
-        return await client.send_rich_message(chat_id=chat_id, rich_message=rich_card(title, body, buttons))
+        return await client.send_rich_message(
+            chat_id=chat_id,
+            rich_message=rich_card(title, body, buttons),
+        )
     except Exception:
         if fallback is None:
             fallback = f"<b>{title}</b>\n\n{body}"
