@@ -188,18 +188,23 @@ async def ul(client, message):
 
 
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from TEAMZYRO.unit.rich_ui import rich_button, rich_message
 
 @ZYRO.on_message(filters.command("server"))
 @require_power("add_character")
 async def select_server(client, message):
     current_server = await get_user_server(message.from_user.id)
-    buttons = InlineKeyboardMarkup(
-        [[
-            InlineKeyboardButton("ImgBB ✅" if current_server == "imgbb" else "ImgBB", callback_data="set_server_imgbb"),
-            InlineKeyboardButton("Catbox ✅" if current_server == "catbox" else "Catbox", callback_data="set_server_catbox")
-        ]]
+    buttons = [[
+        rich_button("ImgBB ✅" if current_server == "imgbb" else "ImgBB", callback_data="set_server_imgbb", style="success" if current_server == "imgbb" else "primary"),
+        rich_button("Catbox ✅" if current_server == "catbox" else "Catbox", callback_data="set_server_catbox", style="success" if current_server == "catbox" else "primary"),
+    ]]
+    await client.send_rich_message(
+        chat_id=message.chat.id,
+        rich_message=rich_message(
+            f"<h2>UPLOAD SERVER</h2><p>Your current upload server is <b>{current_server.upper()}</b>.<br>Select upload server:</p>",
+            buttons=buttons,
+        ),
     )
-    await message.reply(f"Your current upload server is **{current_server.upper()}**.\nSelect upload server:", reply_markup=buttons)
 
 
 @ZYRO.on_callback_query(filters.regex(r"^set_server_"))
@@ -209,23 +214,23 @@ async def server_callback(client, callback_query):
     data = callback_query.data
     if data == "set_server_imgbb":
         await set_user_server(user_id, "imgbb")
-        buttons = InlineKeyboardMarkup(
-            [[
-                InlineKeyboardButton("ImgBB ✅", callback_data="set_server_imgbb"),
-                InlineKeyboardButton("Catbox", callback_data="set_server_catbox")
-            ]]
+        buttons = [[
+            rich_button("ImgBB ✅", callback_data="set_server_imgbb", style="success"),
+            rich_button("Catbox", callback_data="set_server_catbox", style="primary"),
+        ]]
+        await callback_query.edit_message_text(
+            rich_message=rich_message("<h2>UPLOAD SERVER</h2><p>Upload server set to <b>ImgBB</b> ✅</p>", buttons=buttons)
         )
-        await callback_query.edit_message_text("Upload server set to ImgBB ✅", reply_markup=buttons)
         await callback_query.answer("Upload server set to ImgBB ✅", show_alert=True)
     elif data == "set_server_catbox":
         await set_user_server(user_id, "catbox")
-        buttons = InlineKeyboardMarkup(
-            [[
-                InlineKeyboardButton("ImgBB", callback_data="set_server_imgbb"),
-                InlineKeyboardButton("Catbox ✅", callback_data="set_server_catbox")
-            ]]
+        buttons = [[
+            rich_button("ImgBB", callback_data="set_server_imgbb", style="primary"),
+            rich_button("Catbox ✅", callback_data="set_server_catbox", style="success"),
+        ]]
+        await callback_query.edit_message_text(
+            rich_message=rich_message("<h2>UPLOAD SERVER</h2><p>Upload server set to <b>Catbox</b> ✅</p>", buttons=buttons)
         )
-        await callback_query.edit_message_text("Upload server set to Catbox ✅", reply_markup=buttons)
         await callback_query.answer("Upload server set to Catbox ✅", show_alert=True)
 
 
