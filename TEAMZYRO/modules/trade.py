@@ -4,7 +4,6 @@ from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ParseMode
 from TEAMZYRO import user_collection, ZYRO
-from TEAMZYRO.unit.rich_ui import rich_button, rich_message
 
 # Dictionary to store pending trades
 pending_trades = {}
@@ -117,20 +116,19 @@ async def trade(client, message):
         'message_id': None  # Will be updated after sending the message
     }
 
-    # Send trade proposal as a Telegram Rich Message.
-    trade_html = (
-        f"<p>{message.reply_to_message.from_user.mention}, do you agree to trade your character "
-        f"(ID: {receiver_char_id}) with {message.from_user.mention}'s character (ID: {sender_char_id})?</p>"
+    keyboard = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Confirm Trade", callback_data=f"confirm_trade_{trade_id}")],
+            [InlineKeyboardButton("Cancel Trade", callback_data=f"cancel_trade_{trade_id}")]
+        ]
     )
-    trade_message = await client.send_rich_message(
-        chat_id=message.chat.id,
-        rich_message=rich_message(
-            trade_html,
-            buttons=[
-                [rich_button("Confirm Trade", callback_data=f"confirm_trade_{trade_id}", style="success")],
-                [rich_button("Cancel Trade", callback_data=f"cancel_trade_{trade_id}", style="danger")],
-            ],
-        ),
+
+    # Send trade proposal message
+    trade_message = await message.reply_text(
+        f"{message.reply_to_message.from_user.mention}, do you agree to trade your character (ID: {receiver_char_id}) "
+        f"with {message.from_user.mention}'s character (ID: {sender_char_id})?",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=keyboard
     )
 
     # Store message ID for potential updates
