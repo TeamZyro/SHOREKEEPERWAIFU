@@ -66,7 +66,7 @@ async def generate_group_start_message(client):
     return caption, buttons
 
 # 🔹 Send Media (Helper)
-async def send_media_message(message, media, caption, buttons):
+async def send_media_message(client, message, media, caption, buttons):
     """Send the start UI as one Rich Message with embedded media and Rich buttons."""
     safe_media = str(media).replace("&", "&amp;").replace('"', "&quot;")
     if media.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
@@ -74,7 +74,7 @@ async def send_media_message(message, media, caption, buttons):
     else:
         media_html = f'<video src="{safe_media}"></video>'
 
-    return await message._client.send_rich_message(
+    return await client.send_rich_message(
         chat_id=message.chat.id,
         rich_message=rich_message(
             media_html + caption,
@@ -105,7 +105,7 @@ async def start_private_command(client, message):
         text=f"{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴄʜᴇᴄᴋ <b>sᴜᴅᴏʟɪsᴛ</b>.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}",
     )
 
-    await send_media_message(message, media, caption, buttons)
+    await send_media_message(client, message, media, caption, buttons)
 
 # 🔹 Group Start Command Handler
 @app.on_message(filters.command("start") & filters.group)
