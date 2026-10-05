@@ -283,7 +283,7 @@ async def handle_mine_click(client: Client, callback_query):
             parse_mode=enums.ParseMode.HTML,
             reply_markup=generate_keyboard(grid, game_id, player_id, safe_opened, state['mine_hits'], num_mines)
         )
-        del game_state[user_id]
+        game_state.pop(user_id, None)
         return
     else:
         grid[x][y] = 1
@@ -294,7 +294,7 @@ async def handle_mine_click(client: Client, callback_query):
         total_safes = (GRID_SIZE * GRID_SIZE) - num_mines
         if safe_opened >= total_safes:
             # Automatic claim as board is fully swept!
-            del game_state[user_id]
+            game_state.pop(user_id, None)
             user_data, character, winnings = await award_rewards(user_id, safe_opened, bet, num_mines)
             
             caption = (
@@ -359,7 +359,7 @@ async def handle_claim(client: Client, callback_query):
         bet = state['bet']
         num_mines = state['num_mines']
         
-        del game_state[user_id]
+        game_state.pop(user_id, None)
 
         # Award rewards
         user_data, character, winnings = await award_rewards(user_id, safe_opened, bet, num_mines)
