@@ -26,7 +26,7 @@ def rich_card(title, body, buttons=None):
 
 async def send_rich_card(client, chat_id, title, body, buttons=None, fallback=None):
     try:
-        return await client.send_rich_message(chat_id=chat_id, rich_text=rich_card(title, body, buttons))
+        return await client.send_rich_message(chat_id=chat_id, rich_message=rich_card(title, body, buttons))
     except Exception:
         if fallback is None:
             fallback = f"<b>{title}</b>\\n\\n{body}"
