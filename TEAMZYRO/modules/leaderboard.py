@@ -4,6 +4,7 @@ import html
 
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from pyrogram import enums
 
 from TEAMZYRO import (app, PHOTO_URL, OWNER_ID,
                       user_collection, top_global_groups_collection, 
@@ -33,7 +34,7 @@ async def global_leaderboard(client: Client, message: Message):
 
     photo_url = random.choice(PHOTO_URL)
 
-    await message.reply_photo(photo=photo_url, caption=leaderboard_message, parse_mode='html')
+    await message.reply_photo(photo=photo_url, caption=leaderboard_message, parse_mode=enums.ParseMode.HTML)
 
 # Group Top Users Command
 @app.on_message(filters.command("ctop"))
