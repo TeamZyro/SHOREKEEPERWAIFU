@@ -72,6 +72,5 @@ async def basket(bot, message):
         f"<blockquote>🎲 <b>Dice Score:</b> {dice_score}\n"
         f"💰 <b>Earned:</b> +{coins_earned} coins 🎉\n"
         f"💳 <b>New Balance:</b> {updated_user['balance']} coins</blockquote>",
-        quote=True,
         parse_mode=enums.ParseMode.HTML
     )
