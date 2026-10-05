@@ -217,7 +217,7 @@ async def spin_wheel(client: Client, message: Message):
         print(f"Error in wheel spin: {e}")
         try:
             await user_collection.update_one({"id": user_id}, {"$inc": {"balance": amount}})
-            await message.reply_text("⚠️ An error occurred during the spin. Refunded.", quote=True)
+            await message.reply_text("⚠️ An error occurred during the spin. Refunded.")
         except Exception:
             pass
     finally:
