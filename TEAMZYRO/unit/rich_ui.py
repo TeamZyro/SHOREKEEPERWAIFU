@@ -2,7 +2,15 @@ from pyrogram import enums
 from pyrogram.types import InputRichMessage, InputRichBlockParagraph, InputRichBlockSectionHeading, InputRichBlockButtons, RichMessageButton
 
 
-def rich_button(text, callback_data=None, url=None, style=enums.RichButtonStyle.PRIMARY):
+def rich_button(text, callback_data=None, url=None, style=None):
+    # Kurigram exposes the Bot API button style enum as ButtonStyle.
+    # Keep string styles accepted by callers while avoiding import-time crashes
+    # when the enum name differs between Kurigram releases.
+    if style is None:
+        style = enums.ButtonStyle.PRIMARY
+    elif isinstance(style, str):
+        style = getattr(enums.ButtonStyle, style.upper(), style)
+
     return RichMessageButton(text=text, callback_data=callback_data, url=url, style=style)
 
 
