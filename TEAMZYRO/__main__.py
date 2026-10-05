@@ -1,8 +1,13 @@
+import asyncio
+
+# Create and install the single application event loop BEFORE importing TEAMZYRO.
+# Motor, Pyrogram/Kurigram and PTB must all share this same loop.
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
 from TEAMZYRO import *
 import importlib
-import asyncio
 from pyrogram import idle
-import logging
 from TEAMZYRO.modules import ALL_MODULES
 
 
@@ -14,21 +19,18 @@ def main() -> None:
         "𝐀𝐥𝐥 𝐅𝐞𝐚𝐭𝐮𝐫𝐞𝐬 𝐋𝐨𝐚𝐝𝐞𝐝 𝐁𝐚𝐛𝐲🥳..."
     )
 
-    loop = asyncio.get_event_loop()
-
     # PTB Application is used for InlineQueryHandler processing only.
-    # It is intentionally NOT started with run_polling(), because Pyrogram
-    # is the single Telegram update receiver for the bot token.
+    # Pyrogram/Kurigram remains the single Telegram update receiver.
     loop.run_until_complete(application.initialize())
 
-    # PTB's post_init normally runs only with run_polling/run_webhook.
-    # Call it explicitly because this branch intentionally does not start PTB polling.
     if application.post_init:
         loop.run_until_complete(application.post_init(application))
 
     loop.run_until_complete(application.start())
 
-    ZYRO.start()
+    # Ensure the Pyrogram client explicitly uses the same loop as Motor/PTB.
+    ZYRO.loop = loop
+    loop.run_until_complete(ZYRO.start())
 
     LOGGER("TEAMZYRO").info(
         "╔═════ஜ۩۞۩ஜ════╗\n  ☠︎︎MADE BY TEAMZYRO☠︎︎\n╚═════ஜ۩۞۩ஜ════╝"
@@ -39,11 +41,14 @@ def main() -> None:
         idle()
     finally:
         if ZYRO.is_connected:
-            ZYRO.stop()
+            loop.run_until_complete(ZYRO.stop())
 
         if application.running:
             loop.run_until_complete(application.stop())
         loop.run_until_complete(application.shutdown())
+
+        if not loop.is_closed():
+            loop.close()
 
 
 if __name__ == "__main__":
