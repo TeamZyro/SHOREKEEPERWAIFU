@@ -35,6 +35,14 @@ def rich_button_row(buttons, align="center"):
     )
 
 
+def rich_message(html, buttons=None):
+    """Build a Rich Message from trusted/escaped HTML plus Rich Message buttons."""
+    content = str(html)
+    for row in buttons or []:
+        content += rich_button_row(row)
+    return InputRichMessage(html=content)
+
+
 def rich_card(title, body, buttons=None):
     """Build a Rich Message using the same HTML button pattern as RonovaUB."""
     html = (
