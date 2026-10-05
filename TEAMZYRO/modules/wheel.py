@@ -57,8 +57,7 @@ async def spin_wheel(client: Client, message: Message):
         await message.reply_text(
             "🎡 <b>𝖶𝖧𝖤𝖤𝖫</b>\n\n"
             "<blockquote>⏳ Your previous spin is still processing! Please wait.</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -73,8 +72,7 @@ async def spin_wheel(client: Client, message: Message):
             "• Win: 1.5x | Double: 2.0x | Jackpot: 5.0x\n"
             "• Waifu Drop: Random Legendary/Celestial waifu!\n\n"
             "⚠️ Min bet: 100 | Max bet: 50,000</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -84,16 +82,14 @@ async def spin_wheel(client: Client, message: Message):
             await message.reply_text(
                 "🎡 <b>𝖶𝖧𝖤𝖤𝖫</b>\n\n"
                 "<blockquote>❌ Bet amount must be between 100 and 50,000 coins!</blockquote>",
-                parse_mode=enums.ParseMode.HTML,
-                quote=True
+                parse_mode=enums.ParseMode.HTML
             )
             return
     except ValueError:
         await message.reply_text(
             "🎡 <b>𝖶𝖧𝖤𝖤𝖫</b>\n\n"
             "<blockquote>❌ Please enter a valid number for the bet amount!</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -102,8 +98,7 @@ async def spin_wheel(client: Client, message: Message):
         await message.reply_text(
             "🎡 <b>𝖶𝖧𝖤𝖤𝖫</b>\n\n"
             "<blockquote>❌ Insufficient balance to place this bet!</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -118,8 +113,7 @@ async def spin_wheel(client: Client, message: Message):
             f"<blockquote>💰 <b>Bet:</b> {amount} coins\n\n"
             f"🌀 <b>[ 🔴 🔵 🟡 🟢 ]</b>\n\n"
             f"<i>Spinning the wheel...</i></blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         
         frames = [
