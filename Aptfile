@@ -9,3 +9,4 @@ libxrandr2
 libgbm1
 libasound2
 ffmpeg
+# Required for NSFW video-sticker frame extraction
