@@ -71,14 +71,7 @@ async def ai_command(client: Client, message: Message):
                 },
                 json=payload,
             ) as response:
-                raw_body = await response.text()
-                try:
-                    data = json.loads(raw_body)
-                except json.JSONDecodeError:
-                    data = {"raw": raw_body}
-
-        elapsed = round(time.monotonic() - started, 2)
-        print(f"[NSFW] NVIDIA response: status={response.status} elapsed={elapsed}s")
+                data = await response.json(content_type=None)
 
         if response.status != 200:
             error_detail = data.get(
