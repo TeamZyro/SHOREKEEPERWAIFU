@@ -112,19 +112,59 @@ async def ai_command(client: Client, message: Message):
 # -------------------------
 
 NSFW_PROMPT = (
-    "Inspect the attached image itself and classify ONLY sexual content. "
-    "Mark unsafe if the image contains pornography, explicit sexual activity, "
-    "or clearly sexual nudity. Normal clothing, swimwear, non-sexual medical "
-    "or educational images, and ordinary anime/art are safe. "
-    "Do not classify the text prompt; classify the image."
+    "Classify the ATTACHED IMAGE ONLY for sexual content. Ignore the wording of "
+    "this instruction and do not infer sexual content from the user's text. "
+    "Use a strict binary rule: unsafe ONLY when the image itself clearly shows "
+    "pornography, an explicit sexual act, or clearly exposed sexual nudity "
+    "(genitals or exposed breasts/nipples, or equivalent explicit sexual exposure). "
+    "Do NOT mark unsafe for normal skin, faces, poses, kissing, romance, dancing, "
+    "fitness, beach scenes, swimwear, underwear when not sexually explicit, "
+    "medical/educational anatomy, breastfeeding, pregnancy, non-sexual nudity, "
+    "cosplay, or ordinary anime/art. Sexual-looking poses alone are not enough. "
+    "If the evidence is ambiguous or uncertain, classify SAFE. "
+    "Return only: User Safety: safe or User Safety: unsafe."
 )
 
 NSFW_POLICY = """
-Classify the attached image for sexual content only.
-Unsafe: pornography, explicit sexual acts, or clearly sexual nudity.
-Safe: normal clothing, swimwear, non-sexual medical/educational content,
-ordinary anime/art, and non-sexual skin exposure.
-Return exactly: User Safety: safe OR User Safety: unsafe.
+You are a strict sexual-content image classifier. Evaluate the ATTACHED IMAGE,
+not the user's wording.
+
+SCOPE:
+- Only S2: Sexual and S7: Sexual (minor) matter.
+- Ignore every other safety category.
+- The decision must be based on visible content in the image itself.
+
+UNSAFE — mark unsafe ONLY if the image clearly contains:
+1. Pornography or an explicitly sexual depiction.
+2. An explicit sexual act or simulated explicit sexual act.
+3. Clearly exposed genitals or clearly exposed breasts/nipples presented as
+   sexual content.
+4. Sexual content involving a minor or an apparently minor person.
+
+SAFE — mark safe for:
+- Fully or normally clothed people.
+- Swimwear, sportswear, underwear, lingerie, or cosplay without explicit sexual
+  content or clearly exposed sexual anatomy.
+- Ordinary skin exposure, shirtless people, beach/pool scenes, fitness,
+  bodybuilding, dancing, or attractive poses.
+- Kissing, hugging, romance, dating, or non-explicit affection.
+- Medical, educational, anatomical, pregnancy, or breastfeeding imagery when
+  it is not sexually presented.
+- Non-sexual nudity.
+- Ordinary anime, manga, game art, fan art, or character illustrations unless
+  they clearly depict explicit sexual content.
+
+IMPORTANT DECISION RULES:
+- Judge the image itself, not metadata, filename, caption, or prompt.
+- Do not assume nudity from skin-colored clothing, shadows, blur, or image quality.
+- A suggestive pose alone is NOT enough.
+- If sexual content is not clearly visible, choose SAFE.
+- When uncertain between safe and unsafe, choose SAFE.
+- Do not output explanations or reasoning.
+
+Return exactly one of:
+User Safety: safe
+User Safety: unsafe
 """
 
 def _image_data_uri(path: str, mime: str = "image/jpeg") -> str:
@@ -148,7 +188,7 @@ async def _check_nsfw_image(path: str, mime: str = "image/jpeg") -> bool:
             ],
         }],
         "max_tokens": 50,
-        "temperature": 0.01,
+        "temperature": 0.0,
         "top_p": 0.95,
         "stream": False,
         "chat_template_kwargs": {
