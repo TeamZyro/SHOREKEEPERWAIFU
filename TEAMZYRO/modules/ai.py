@@ -327,8 +327,7 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
             try:
                 await message.delete()
                 print(f"NSFW media deleted: chat={message.chat.id}, message={message.id}")
-                if message.sticker and message.sticker.is_video:
-                    await _send_nsfw_notification(client, message)
+                await _send_nsfw_notification(client, message)
             except Exception as exc:
                 print(f"[NSFW] DELETE FAILED: {type(exc).__name__}: {exc}. Check bot admin/Delete Messages permission.")
 
