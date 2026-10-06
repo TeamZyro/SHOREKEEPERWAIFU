@@ -110,33 +110,25 @@ async def ai_command(client: Client, message: Message):
 # -------------------------
 
 NSFW_PROMPT = (
-    "Moderate this Telegram media image. Determine whether the image itself "
-    "contains sexually explicit or pornographic content, sexual nudity, or a "
-    "sexual act. Normal clothing, swimwear, non-sexual medical/educational "
-    "images and ordinary anime/art should not be marked unsafe solely because "
-    "skin is visible. Return the normal Nemotron safety classification."
+    "Inspect the attached image itself and classify ONLY sexual content. "
+    "Mark unsafe if the image contains pornography, explicit sexual activity, "
+    "or clearly sexual nudity. Normal clothing, swimwear, non-sexual medical "
+    "or educational images, and ordinary anime/art are safe. "
+    "Do not classify the text prompt; classify the image."
 )
 
+NSFW_POLICY = """
+Classify the attached image for sexual content only.
+Unsafe: pornography, explicit sexual acts, or clearly sexual nudity.
+Safe: normal clothing, swimwear, non-sexual medical/educational content,
+ordinary anime/art, and non-sexual skin exposure.
+Return exactly: User Safety: safe OR User Safety: unsafe.
+"""
 
 def _image_data_uri(path: str, mime: str = "image/jpeg") -> str:
     with open(path, "rb") as file:
         encoded = base64.b64encode(file.read()).decode("ascii")
     return f"data:{mime};base64,{encoded}"
-
-
-def _sexual_result(text: str) -> bool:
-    lowered = " ".join((text or "").lower().split())
-
-    # Nemotron taxonomy: S2 = Sexual, S7 = Sexual (minor).
-    if "safety categories:" in lowered:
-        categories = lowered.split("safety categories:", 1)[1]
-        return "sexual (minor)" in categories or "sexual" in categories
-
-    return (
-        "s2: sexual" in lowered
-        or "s7: sexual (minor)" in lowered
-        or "sexual (minor)" in lowered
-    )
 
 
 async def _check_nsfw_image(path: str, mime: str = "image/jpeg") -> bool:
@@ -146,23 +138,22 @@ async def _check_nsfw_image(path: str, mime: str = "image/jpeg") -> bool:
 
     payload = {
         "model": NVIDIA_NSFW_MODEL,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": _image_data_uri(path, mime)},
-                    },
-                    {"type": "text", "text": NSFW_PROMPT},
-                ],
-            }
-        ],
-        "max_tokens": 128,
-        "temperature": 0.0,
-        "top_p": 0.1,
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": NSFW_PROMPT},
+                {"type": "image_url", "image_url": {"url": _image_data_uri(path, mime)}},
+            ],
+        }],
+        "max_tokens": 50,
+        "temperature": 0.01,
+        "top_p": 0.95,
         "stream": False,
-        "chat_template_kwargs": {"request_categories": "/categories"},
+        "chat_template_kwargs": {
+            "custom_policy": NSFW_POLICY,
+            "request_categories": "/no_categories",
+            "enable_thinking": False,
+        },
     }
 
     try:
@@ -190,21 +181,22 @@ async def _check_nsfw_image(path: str, mime: str = "image/jpeg") -> bool:
             choices[0].get("message", {}).get("content", "")
             if choices else ""
         )
-        print(f"NSFW moderation result: {result[:500]}")
-        return _sexual_result(result)
+        lowered = " ".join(result.lower().split())
+        is_nsfw = "user safety: unsafe" in lowered
+        print(f"NSFW moderation result: {result[:300]} | unsafe={is_nsfw}")
+        return is_nsfw
 
     except (asyncio.TimeoutError, aiohttp.ClientError) as exc:
         print(f"NVIDIA NSFW connection error: {exc}")
         return False
     except Exception as exc:
-        print(f"NVIDIA NSFW check error: {exc}")
+        print(f"NVIDIA NSFW check error: {type(exc).__name__}: {exc}")
         return False
 
 
 async def _is_admin(client: Client, message: Message) -> bool:
     if not message.from_user or not message.chat:
         return False
-
     try:
         member = await client.get_chat_member(
             message.chat.id,
@@ -230,48 +222,37 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
         return
 
     temp_path = None
-
     try:
         if message.photo:
             with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
                 temp_path = tmp.name
             await message.download(file_name=temp_path)
-            is_nsfw = await _check_nsfw_image(temp_path, "image/jpeg")
+            is_nsfw = await _check_nsfw_image(temp_path)
 
-        elif message.sticker and not message.sticker.is_animated:
+        elif message.sticker and not message.sticker.is_animated and not message.sticker.is_video:
             with tempfile.NamedTemporaryFile(suffix=".webp", delete=False) as tmp:
                 temp_path = tmp.name
             await message.download(file_name=temp_path)
             is_nsfw = await _check_nsfw_image(temp_path, "image/webp")
 
         elif message.video or (message.sticker and message.sticker.is_video):
-            # Only a few frames are scanned to keep the 512 MB dyno light.
             with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
                 temp_path = tmp.name
             await message.download(file_name=temp_path)
 
             with tempfile.TemporaryDirectory() as frame_dir:
                 pattern = os.path.join(frame_dir, "frame-%02d.jpg")
-                command = [
+                process = await asyncio.create_subprocess_exec(
                     "ffmpeg", "-hide_banner", "-loglevel", "error",
                     "-i", temp_path,
-                    "-vf",
-                    "fps=1/3,scale=896:896:force_original_aspect_ratio=decrease",
+                    "-vf", "fps=1/3,scale=896:896:force_original_aspect_ratio=decrease",
                     "-frames:v", "6", "-q:v", "5", pattern,
-                ]
-
-                process = await asyncio.create_subprocess_exec(
-                    *command,
                     stdout=asyncio.subprocess.DEVNULL,
                     stderr=asyncio.subprocess.PIPE,
                 )
                 _, stderr = await process.communicate()
-
                 if process.returncode != 0:
-                    print(
-                        "FFmpeg frame extraction failed: "
-                        f"{stderr.decode(errors='ignore')[:500]}"
-                    )
+                    print(f"FFmpeg frame extraction failed: {stderr.decode(errors='ignore')[:500]}")
                     return
 
                 frames = sorted(
@@ -279,10 +260,9 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
                     for name in os.listdir(frame_dir)
                     if name.endswith(".jpg")
                 )
-
                 is_nsfw = False
                 for frame in frames:
-                    if await _check_nsfw_image(frame, "image/jpeg"):
+                    if await _check_nsfw_image(frame):
                         is_nsfw = True
                         break
         else:
@@ -291,16 +271,12 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
         if is_nsfw:
             try:
                 await message.delete()
-                print(
-                    f"NSFW media deleted: chat={message.chat.id}, "
-                    f"message={message.id}"
-                )
+                print(f"NSFW media deleted: chat={message.chat.id}, message={message.id}")
             except Exception as exc:
                 print(f"Failed to delete NSFW media: {exc}")
 
     except Exception as exc:
         print(f"NSFW media handler error: {type(exc).__name__}: {exc}")
-
     finally:
         if temp_path:
             try:
@@ -309,9 +285,15 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
                 pass
 
 
+# Do not depend on filters.group to receive the update. We verify the
+# chat type inside the handler, which is safer across Pyrogram/Kurigram.
 @app.on_message(
-    filters.group & (filters.photo | filters.video | filters.sticker),
+    filters.photo | filters.video | filters.sticker,
     group=97,
 )
 async def nsfw_media_handler(client: Client, message: Message):
+    print(
+        f"NSFW handler received media: chat={getattr(message.chat, 'id', None)} "
+        f"type={getattr(message.chat, 'type', None)} message={message.id}"
+    )
     await _delete_if_nsfw(client, message)
