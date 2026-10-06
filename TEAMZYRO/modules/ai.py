@@ -130,14 +130,13 @@ def _sexual_result(text: str) -> bool:
     # Nemotron taxonomy: S2 = Sexual, S7 = Sexual (minor).
     if "safety categories:" in lowered:
         categories = lowered.split("safety categories:", 1)[1]
-        if (
-            "s2: sexual" in categories
-            or "s7: sexual (minor)" in categories
-            or "sexual (minor)" in categories
-        ):
-            return True
+        return "sexual (minor)" in categories or "sexual" in categories
 
-    return "s2: sexual" in lowered or "s7: sexual (minor)" in lowered
+    return (
+        "s2: sexual" in lowered
+        or "s7: sexual (minor)" in lowered
+        or "sexual (minor)" in lowered
+    )
 
 
 async def _check_nsfw_image(path: str, mime: str = "image/jpeg") -> bool:
@@ -239,7 +238,7 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
             await message.download(file_name=temp_path)
             is_nsfw = await _check_nsfw_image(temp_path, "image/jpeg")
 
-        elif message.sticker and not message.sticker.animated:
+        elif message.sticker and not message.sticker.is_animated:
             with tempfile.NamedTemporaryFile(suffix=".webp", delete=False) as tmp:
                 temp_path = tmp.name
             await message.download(file_name=temp_path)
