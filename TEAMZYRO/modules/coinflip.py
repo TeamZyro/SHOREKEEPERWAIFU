@@ -15,8 +15,7 @@ async def coin_flip(client: Client, message: Message):
         await message.reply_text(
             "🪙 <b>𝖢𝖮𝖨𝖭𝖥𝖫𝖨𝖯</b>\n\n"
             "<blockquote>⏳ Your previous flip is still processing! Please wait.</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
         
@@ -28,8 +27,7 @@ async def coin_flip(client: Client, message: Message):
             "Use <code>/coinflip &lt;amount&gt; &lt;heads/tails&gt;</code>\n"
             "Example: <code>/coinflip 500 heads</code>\n\n"
             "⚠️ Min bet: 100 | Max bet: 50,000</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -40,16 +38,14 @@ async def coin_flip(client: Client, message: Message):
             await message.reply_text(
                 "🪙 <b>𝖢𝖮𝖨𝖭𝖥𝖫𝖨𝖯</b>\n\n"
                 "<blockquote>❌ Bet amount must be between 100 and 50,000 coins!</blockquote>",
-                parse_mode=enums.ParseMode.HTML,
-                quote=True
+                parse_mode=enums.ParseMode.HTML
             )
             return
     except ValueError:
         await message.reply_text(
             "🪙 <b>𝖢𝖮𝖨𝖭𝖥𝖫𝖨𝖯</b>\n\n"
             "<blockquote>❌ Please enter a valid number for the bet amount!</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -63,8 +59,7 @@ async def coin_flip(client: Client, message: Message):
         await message.reply_text(
             "🪙 <b>𝖢𝖮𝖨𝖭𝖥𝖫𝖨𝖯</b>\n\n"
             "<blockquote>❌ Invalid choice! Choose heads (h) or tails (t).</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -74,8 +69,7 @@ async def coin_flip(client: Client, message: Message):
         await message.reply_text(
             "🪙 <b>𝖢𝖮𝖨𝖭𝖥𝖫𝖨𝖯</b>\n\n"
             "<blockquote>❌ Insufficient balance to place this bet!</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -93,8 +87,7 @@ async def coin_flip(client: Client, message: Message):
             f"<blockquote>💰 <b>Bet:</b> {amount} coins\n"
             f"🎯 <b>Prediction:</b> {choice}\n\n"
             f"🌀 <i>Spinning the coin in the air...</i></blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         
         # Wait for suspense
@@ -144,7 +137,7 @@ async def coin_flip(client: Client, message: Message):
         print(f"Error in coinflip: {e}")
         try:
             await user_collection.update_one({"id": user_id}, {"$inc": {"balance": amount}})
-            await message.reply_text("⚠️ An error occurred during the flip. Your bet has been refunded.", quote=True)
+            await message.reply_text("⚠️ An error occurred during the flip. Your bet has been refunded.")
         except Exception:
             pass
     finally:
