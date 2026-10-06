@@ -311,7 +311,8 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
 
 
 @app.on_message(
-    filters.group & (filters.photo | filters.video | filters.sticker)
+    filters.group & (filters.photo | filters.video | filters.sticker),
+    group=97,
 )
 async def nsfw_media_handler(client: Client, message: Message):
     await _delete_if_nsfw(client, message)
