@@ -2,6 +2,8 @@ import asyncio
 import base64
 import os
 import subprocess
+import json
+import time
 import tempfile
 
 import aiohttp
@@ -157,6 +159,9 @@ async def _check_nsfw_image(path: str, mime: str = "image/jpeg") -> bool:
     }
 
     try:
+        file_size = os.path.getsize(path)
+        started = time.monotonic()
+        print(f"[NSFW] API request start: file={file_size} bytes mime={mime} model={NVIDIA_NSFW_MODEL}")
         async with aiohttp.ClientSession(timeout=NSFW_TIMEOUT) as session:
             async with session.post(
                 NVIDIA_API_URL,
@@ -177,13 +182,21 @@ async def _check_nsfw_image(path: str, mime: str = "image/jpeg") -> bool:
             return False
 
         choices = data.get("choices") or []
-        result = (
-            choices[0].get("message", {}).get("content", "")
-            if choices else ""
-        )
+        if not choices:
+            print(f"[NSFW] NVIDIA returned no choices: {json.dumps(data)[:1500]}")
+            return False
+
+        result = (choices[0].get("message") or {}).get("content") or ""
         lowered = " ".join(result.lower().split())
-        is_nsfw = "user safety: unsafe" in lowered
-        print(f"NSFW moderation result: {result[:300]} | unsafe={is_nsfw}")
+        is_unsafe = "user safety: unsafe" in lowered
+        is_sexual = (
+            "s2: sexual" in lowered
+            or "s7: sexual (minor)" in lowered
+            or "sexual (minor)" in lowered
+            or "safety categories: sexual" in lowered
+        )
+        is_nsfw = is_unsafe or is_sexual
+        print(f"[NSFW] NVIDIA result: {result[:800]!r} | unsafe={is_unsafe} sexual_category={is_sexual} final={is_nsfw}")
         return is_nsfw
 
     except (asyncio.TimeoutError, aiohttp.ClientError) as exc:
@@ -202,10 +215,12 @@ async def _is_admin(client: Client, message: Message) -> bool:
             message.chat.id,
             message.from_user.id,
         )
-        return member.status in (
+        is_admin = member.status in (
             enums.ChatMemberStatus.OWNER,
             enums.ChatMemberStatus.ADMINISTRATOR,
         )
+        print(f"[NSFW] sender={message.from_user.id} member_status={member.status} admin_bypass={is_admin}")
+        return is_admin
     except Exception as exc:
         print(f"NSFW admin check error: {exc}")
         return False
@@ -226,13 +241,17 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
         if message.photo:
             with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
                 temp_path = tmp.name
+            print(f"[NSFW] downloading photo: message={message.id}")
             await message.download(file_name=temp_path)
+            print(f"[NSFW] photo downloaded: {os.path.getsize(temp_path)} bytes")
             is_nsfw = await _check_nsfw_image(temp_path)
 
         elif message.sticker and not message.sticker.is_animated and not message.sticker.is_video:
             with tempfile.NamedTemporaryFile(suffix=".webp", delete=False) as tmp:
                 temp_path = tmp.name
+            print(f"[NSFW] downloading sticker: message={message.id}")
             await message.download(file_name=temp_path)
+            print(f"[NSFW] sticker downloaded: {os.path.getsize(temp_path)} bytes")
             is_nsfw = await _check_nsfw_image(temp_path, "image/webp")
 
         elif message.video or (message.sticker and message.sticker.is_video):
@@ -268,12 +287,13 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
         else:
             return
 
+        print(f"[NSFW] final decision: chat={message.chat.id} message={message.id} nsfw={is_nsfw}")
         if is_nsfw:
             try:
                 await message.delete()
                 print(f"NSFW media deleted: chat={message.chat.id}, message={message.id}")
             except Exception as exc:
-                print(f"Failed to delete NSFW media: {exc}")
+                print(f"[NSFW] DELETE FAILED: {type(exc).__name__}: {exc}. Check bot admin/Delete Messages permission.")
 
     except Exception as exc:
         print(f"NSFW media handler error: {type(exc).__name__}: {exc}")
@@ -293,7 +313,7 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
 )
 async def nsfw_media_handler(client: Client, message: Message):
     print(
-        f"NSFW handler received media: chat={getattr(message.chat, 'id', None)} "
+        f"[NSFW] handler received media: chat={getattr(message.chat, 'id', None)} "
         f"type={getattr(message.chat, 'type', None)} message={message.id}"
     )
     await _delete_if_nsfw(client, message)
