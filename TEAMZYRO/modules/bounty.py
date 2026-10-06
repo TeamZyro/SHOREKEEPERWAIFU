@@ -247,6 +247,5 @@ async def mybounty_handler(client: Client, message: Message):
     await message.reply_photo(
         photo=poster_img,
         caption=caption,
-        reply_markup=buttons,
-        quote=True
+        reply_markup=buttons
     )
