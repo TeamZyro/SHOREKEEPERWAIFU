@@ -8,7 +8,7 @@ import tempfile
 
 import aiohttp
 from pyrogram import Client, filters, enums
-from pyrogram.types import Message
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from TEAMZYRO import app
 
@@ -226,6 +226,41 @@ async def _is_admin(client: Client, message: Message) -> bool:
         return False
 
 
+async def _auto_delete_nsfw_notification(notification: Message) -> None:
+    try:
+        await asyncio.sleep(30)
+        await notification.delete()
+        print(f"[NSFW] notification auto-deleted: message={notification.id}")
+    except Exception as exc:
+        print(
+            f"[NSFW] notification auto-delete failed: "
+            f"{type(exc).__name__}: {exc}"
+        )
+
+
+async def _send_nsfw_notification(client: Client, message: Message) -> None:
+    try:
+        notification = await message.chat.send_message(
+            "🚫 <b>NSFW Content Deleted</b>\n\n"
+            "The detected NSFW content was automatically deleted.\n"
+            "⏳ This notification will automatically delete in <b>30 seconds</b>.",
+            parse_mode=enums.ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("✖️ Close", callback_data="nsfw_close")]]
+            ),
+        )
+        print(
+            f"[NSFW] notification sent: chat={message.chat.id} "
+            f"message={notification.id}"
+        )
+        asyncio.create_task(_auto_delete_nsfw_notification(notification))
+    except Exception as exc:
+        print(
+            f"[NSFW] notification send failed: "
+            f"{type(exc).__name__}: {exc}"
+        )
+
+
 async def _delete_if_nsfw(client: Client, message: Message) -> None:
     if not message.chat or message.chat.type not in (
         enums.ChatType.GROUP,
@@ -292,6 +327,7 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
             try:
                 await message.delete()
                 print(f"NSFW media deleted: chat={message.chat.id}, message={message.id}")
+                await _send_nsfw_notification(client, message)
             except Exception as exc:
                 print(f"[NSFW] DELETE FAILED: {type(exc).__name__}: {exc}. Check bot admin/Delete Messages permission.")
 
@@ -307,6 +343,25 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
 
 # Do not depend on filters.group to receive the update. We verify the
 # chat type inside the handler, which is safer across Pyrogram/Kurigram.
+@app.on_callback_query(filters.regex(r"^nsfw_close$"))
+async def nsfw_close_notification(client: Client, callback_query):
+    try:
+        await callback_query.message.delete()
+        await callback_query.answer("Closed.")
+    except Exception as exc:
+        print(
+            f"[NSFW] notification close failed: "
+            f"{type(exc).__name__}: {exc}"
+        )
+        try:
+            await callback_query.answer(
+                "Unable to close this message.",
+                show_alert=True,
+            )
+        except Exception:
+            pass
+
+
 @app.on_message(
     filters.photo | filters.video | filters.sticker,
     group=97,
