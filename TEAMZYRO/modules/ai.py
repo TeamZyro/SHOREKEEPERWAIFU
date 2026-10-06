@@ -121,7 +121,14 @@ NSFW_PROMPT = (
     "fitness, beach scenes, swimwear, underwear when not sexually explicit, "
     "medical/educational anatomy, breastfeeding, pregnancy, non-sexual nudity, "
     "cosplay, or ordinary anime/art. Sexual-looking poses alone are not enough. "
-    "If the evidence is ambiguous or uncertain, classify SAFE. "
+    "IMPORTANT: The presence of a child, baby, teenager, family, student, or young-looking "
+    "person is NEVER by itself sexual or unsafe. Normal photos of minors must be SAFE, "
+    "including children playing, studying, sleeping, swimming, doing sports, family photos, "
+    "school photos, birthdays, outdoor scenes, normal clothing, ordinary skin exposure, "
+    "or other non-sexual situations. S7 is unsafe ONLY when the image itself clearly contains "
+    "sexual content involving a minor; do not infer sexual intent from age, appearance, pose, "
+    "skin exposure, clothing, or context alone. If the image is non-sexual, return SAFE even "
+    "when the person is clearly a minor. If sexual content is not clearly visible, classify SAFE. "
     "Return only: User Safety: safe or User Safety: unsafe."
 )
 
@@ -139,7 +146,20 @@ UNSAFE — mark unsafe ONLY if the image clearly contains:
 2. An explicit sexual act or simulated explicit sexual act.
 3. Clearly exposed genitals or clearly exposed breasts/nipples presented as
    sexual content.
-4. Sexual content involving a minor or an apparently minor person.
+4. Sexual content involving a minor: ONLY when the image itself clearly depicts sexual
+   content. The fact that a person is a minor, appears young, or is age-ambiguous is NOT
+   sufficient for an unsafe decision.
+
+CRITICAL MINOR-SAFETY RULE:
+- Normal images of children, babies, teenagers, students, or families are SAFE.
+- A minor being present is NOT sexual content.
+- Children playing, studying, sleeping, swimming, doing sports, attending school,
+  birthdays, family events, outdoor activities, or wearing ordinary/swim/sports clothing
+  are SAFE when there is no clearly sexual content.
+- Do not infer sexual intent from age, body shape, skin exposure, pose, clothing, or
+  camera framing.
+- S7 must NOT trigger merely because the classifier believes the person is young.
+- Only mark S7 unsafe when sexual content involving a minor is clearly visible in the image.
 
 SAFE — mark safe for:
 - Fully or normally clothed people.
