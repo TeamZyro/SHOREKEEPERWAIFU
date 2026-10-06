@@ -240,7 +240,7 @@ async def _auto_delete_nsfw_notification(notification: Message) -> None:
 
 async def _send_nsfw_notification(client: Client, message: Message) -> None:
     try:
-        notification = await message.chat.send_message(
+        notification = await client.send_message(message.chat.id,
             "🚫 <b>NSFW Content Deleted</b>\n\n"
             "The detected NSFW content was automatically deleted.\n"
             "⏳ This notification will automatically delete in <b>30 seconds</b>.",
@@ -327,7 +327,8 @@ async def _delete_if_nsfw(client: Client, message: Message) -> None:
             try:
                 await message.delete()
                 print(f"NSFW media deleted: chat={message.chat.id}, message={message.id}")
-                await _send_nsfw_notification(client, message)
+                if message.sticker and message.sticker.is_video:
+                    await _send_nsfw_notification(client, message)
             except Exception as exc:
                 print(f"[NSFW] DELETE FAILED: {type(exc).__name__}: {exc}. Check bot admin/Delete Messages permission.")
 
