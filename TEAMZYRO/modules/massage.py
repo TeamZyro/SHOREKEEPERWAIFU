@@ -126,7 +126,7 @@ def _pyrogram_message_to_update(message):
     )
 
 
-@app.on_message(pyro_filters.all)
+@app.on_message(pyro_filters.all, group=1)
 async def _forward_pyrogram_message_to_ptb(client, message):
     """Pyrogram receives Telegram updates; PTB processes this module's handler."""
     if getattr(message, "from_user", None) is None:
