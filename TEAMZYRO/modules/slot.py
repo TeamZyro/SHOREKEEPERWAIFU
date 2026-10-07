@@ -18,8 +18,7 @@ async def slot_machine(client: Client, message: Message):
         await message.reply_text(
             "🎰 <b>𝖲𝖫𝖮𝖳𝖲</b>\n\n"
             "<blockquote>⏳ Your previous slot spin is still processing! Please wait.</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -34,8 +33,7 @@ async def slot_machine(client: Client, message: Message):
             "• 3 matches: <b>5.0x payout</b>\n"
             "• 2 matches: <b>1.5x payout</b>\n\n"
             "⚠️ Min bet: 100 | Max bet: 50,000</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -54,8 +52,7 @@ async def slot_machine(client: Client, message: Message):
         await message.reply_text(
             "🎰 <b>𝖲𝖫𝖮𝖳𝖲</b>\n\n"
             "<blockquote>❌ Please enter a valid number for the bet amount!</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -65,8 +62,7 @@ async def slot_machine(client: Client, message: Message):
         await message.reply_text(
             "🎰 <b>𝖲𝖫𝖮𝖳𝖲</b>\n\n"
             "<blockquote>❌ Insufficient balance to place this bet!</blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         return
 
@@ -84,8 +80,7 @@ async def slot_machine(client: Client, message: Message):
             f"<blockquote>💰 <b>Bet:</b> {amount} coins\n\n"
             f"🌀 <b>[ 🎰 | 🎰 | 🎰 ]</b>\n\n"
             f"<i>Rolling the reels...</i></blockquote>",
-            parse_mode=enums.ParseMode.HTML,
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
         
         # Sleep for slot animation effect
