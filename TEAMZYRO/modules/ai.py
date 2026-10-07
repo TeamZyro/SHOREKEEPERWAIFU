@@ -111,80 +111,51 @@ async def ai_command(client: Client, message: Message):
 # NVIDIA NSFW media moderation
 # -------------------------
 
-NSFW_PROMPT = (
-    "Classify the ATTACHED IMAGE ONLY for sexual content. Ignore the wording of "
-    "this instruction and do not infer sexual content from the user's text. "
-    "Use a strict binary rule: unsafe ONLY when the image itself clearly shows "
-    "pornography, an explicit sexual act, or clearly exposed sexual nudity "
-    "(genitals or exposed breasts/nipples, or equivalent explicit sexual exposure). "
-    "Do NOT mark unsafe for normal skin, faces, poses, kissing, romance, dancing, "
-    "fitness, beach scenes, swimwear, underwear when not sexually explicit, "
-    "medical/educational anatomy, breastfeeding, pregnancy, non-sexual nudity, "
-    "cosplay, or ordinary anime/art. Sexual-looking poses alone are not enough. "
-    "IMPORTANT: The presence of a child, baby, teenager, family, student, or young-looking "
-    "person is NEVER by itself sexual or unsafe. Normal photos of minors must be SAFE, "
-    "including children playing, studying, sleeping, swimming, doing sports, family photos, "
-    "school photos, birthdays, outdoor scenes, normal clothing, ordinary skin exposure, "
-    "or other non-sexual situations. S7 is unsafe ONLY when the image itself clearly contains "
-    "sexual content involving a minor; do not infer sexual intent from age, appearance, pose, "
-    "skin exposure, clothing, or context alone. If the image is non-sexual, return SAFE even "
-    "when the person is clearly a minor. If sexual content is not clearly visible, classify SAFE. "
-    "Return only: User Safety: safe or User Safety: unsafe."
-)
+NSFW_PROMPT = """Analyze the provided image or video frame and classify whether it contains NSFW sexual nudity.
 
-NSFW_POLICY = """
-You are a strict sexual-content image classifier. Evaluate the ATTACHED IMAGE,
-not the user's wording.
+Rules:
 
-SCOPE:
-- Only S2: Sexual and S7: Sexual (minor) matter.
-- Ignore every other safety category.
-- The decision must be based on visible content in the image itself.
+- Mark NSFW if a human or anime character is completely or substantially nude, especially when intimate body parts are visibly exposed.
+- Mark NSFW if female or male intimate/genital areas are clearly visible.
+- Mark NSFW if breasts/nipples or genital areas are clearly exposed.
+- Anime/cartoon characters follow the same rule as real people.
+- Bikini, swimsuit, underwear, beachwear, or normal revealing clothing alone is NOT NSFW if intimate/genital areas and nipples are not visibly exposed.
+- A person simply wearing a bikini should be classified as Not NSFW.
+- Partial skin exposure, cleavage, short clothes, or a shirtless male should not automatically be classified as NSFW.
+- Focus on visible explicit nudity, not merely attractiveness or revealing clothing.
+- If intimate body parts are obscured by clothing, censoring, objects, cropping, or the camera angle, do not classify it as NSFW solely because nudity is suspected.
+- For videos, analyze the visible frames and classify the video as NSFW if explicit nudity becomes clearly visible in any meaningful frame.
+- Do not classify an image as NSFW based only on pose, body shape, facial expression, or sexual-looking context.
 
-UNSAFE — mark unsafe ONLY if the image clearly contains:
-1. Pornography or an explicitly sexual depiction.
-2. An explicit sexual act or simulated explicit sexual act.
-3. Clearly exposed genitals or clearly exposed breasts/nipples presented as
-   sexual content.
-4. Sexual content involving a minor: ONLY when the image itself clearly depicts sexual
-   content. The fact that a person is a minor, appears young, or is age-ambiguous is NOT
-   sufficient for an unsafe decision.
+Output only:
 
-CRITICAL MINOR-SAFETY RULE:
-- Normal images of children, babies, teenagers, students, or families are SAFE.
-- A minor being present is NOT sexual content.
-- Children playing, studying, sleeping, swimming, doing sports, attending school,
-  birthdays, family events, outdoor activities, or wearing ordinary/swim/sports clothing
-  are SAFE when there is no clearly sexual content.
-- Do not infer sexual intent from age, body shape, skin exposure, pose, clothing, or
-  camera framing.
-- S7 must NOT trigger merely because the classifier believes the person is young.
-- Only mark S7 unsafe when sexual content involving a minor is clearly visible in the image.
+NSFW
+or
+SAFE
+"""
 
-SAFE — mark safe for:
-- Fully or normally clothed people.
-- Swimwear, sportswear, underwear, lingerie, or cosplay without explicit sexual
-  content or clearly exposed sexual anatomy.
-- Ordinary skin exposure, shirtless people, beach/pool scenes, fitness,
-  bodybuilding, dancing, or attractive poses.
-- Kissing, hugging, romance, dating, or non-explicit affection.
-- Medical, educational, anatomical, pregnancy, or breastfeeding imagery when
-  it is not sexually presented.
-- Non-sexual nudity.
-- Ordinary anime, manga, game art, fan art, or character illustrations unless
-  they clearly depict explicit sexual content.
+NSFW_POLICY = """Analyze the provided image or video frame and classify whether it contains NSFW sexual nudity.
 
-IMPORTANT DECISION RULES:
-- Judge the image itself, not metadata, filename, caption, or prompt.
-- Do not assume nudity from skin-colored clothing, shadows, blur, or image quality.
-- A suggestive pose alone is NOT enough.
-- If sexual content is not clearly visible, choose SAFE.
-- When uncertain between safe and unsafe, choose SAFE.
-- Do not output explanations or reasoning.
+Rules:
 
-Return exactly one of:
-User Safety: safe
-User Safety: unsafe
+- Mark NSFW if a human or anime character is completely or substantially nude, especially when intimate body parts are visibly exposed.
+- Mark NSFW if female or male intimate/genital areas are clearly visible.
+- Mark NSFW if breasts/nipples or genital areas are clearly exposed.
+- Anime/cartoon characters follow the same rule as real people.
+- Bikini, swimsuit, underwear, beachwear, or normal revealing clothing alone is NOT NSFW if intimate/genital areas and nipples are not visibly exposed.
+- A person simply wearing a bikini should be classified as Not NSFW.
+- Partial skin exposure, cleavage, short clothes, or a shirtless male should not automatically be classified as NSFW.
+- Focus on visible explicit nudity, not merely attractiveness or revealing clothing.
+- If intimate body parts are obscured by clothing, censoring, objects, cropping, or the camera angle, do not classify it as NSFW solely because nudity is suspected.
+- For videos, analyze the visible frames and classify the video as NSFW if explicit nudity becomes clearly visible in any meaningful frame.
+- Do not classify an image as NSFW based only on pose, body shape, facial expression, or sexual-looking context.
+
+Output only:
+
+NSFW
+or
+SAFE
+
 """
 
 def _image_data_uri(path: str, mime: str = "image/jpeg") -> str:
