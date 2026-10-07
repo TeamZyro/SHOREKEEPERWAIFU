@@ -146,8 +146,8 @@ async def balance(client: Client, message: Message):
 
     user_balance, user_tokens = await get_balance(user_id)
     response = (
-        f"{html.escape(message.from_user.first_name)}\\n"
-        f"◈⌠ {user_balance} coins⌡\\n"
+        f"{html.escape(message.from_user.first_name)}\n"
+        f"◈⌠ {user_balance} coins⌡\n"
         f"◈⌠ {user_tokens} Tokens⌡"
     )
 
