@@ -219,15 +219,16 @@ async def _check_nsfw_image(path: str, mime: str = "image/jpeg") -> bool:
 
         result = (choices[0].get("message") or {}).get("content") or ""
         lowered = " ".join(result.lower().split())
-        is_unsafe = "user safety: unsafe" in lowered
-        is_sexual = (
-            "s2: sexual" in lowered
+        normalized = result.strip().upper()
+        is_nsfw = (
+            normalized == "NSFW"
+            or "user safety: unsafe" in lowered
+            or "s2: sexual" in lowered
             or "s7: sexual (minor)" in lowered
             or "sexual (minor)" in lowered
             or "safety categories: sexual" in lowered
         )
-        is_nsfw = is_unsafe or is_sexual
-        print(f"[NSFW] NVIDIA result: {result[:800]!r} | unsafe={is_unsafe} sexual_category={is_sexual} final={is_nsfw}")
+        print(f"[NSFW] NVIDIA result: {result[:800]!r} | normalized={normalized!r} final={is_nsfw}")
         return is_nsfw
 
     except (asyncio.TimeoutError, aiohttp.ClientError) as exc:
