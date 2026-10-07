@@ -173,4 +173,8 @@ async def bridge_pyrogram_inline_to_ptb(client, inline_query):
     )
     ptb_update.set_bot(application.bot)
 
-    await application.update_queue.put(ptb_update)
+    # Feed the synthetic PTB update directly into the running Application.
+    # Using update_queue here bypasses PTB's normal update processing/context
+    # path and can make InlineQueryHandler unreliable when Pyrogram is the
+    # single Telegram update receiver.
+    await application.process_update(ptb_update)
