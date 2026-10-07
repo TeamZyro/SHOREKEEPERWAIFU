@@ -45,7 +45,6 @@ async def slot_machine(client: Client, message: Message):
                 "🎰 <b>𝖲𝖫𝖮𝖳𝖲</b>\n\n"
                 "<blockquote>❌ Bet amount must be between 100 and 50,000 coins!</blockquote>",
                 parse_mode=enums.ParseMode.HTML,
-                quote=True
             )
             return
     except ValueError:
@@ -144,7 +143,7 @@ async def slot_machine(client: Client, message: Message):
         print(f"Error in slots: {e}")
         try:
             await user_collection.update_one({"id": user_id}, {"$inc": {"balance": amount}})
-            await message.reply_text("⚠️ An error occurred during the spin. Your bet has been refunded.", quote=True)
+            await message.reply_text("⚠️ An error occurred during the spin. Your bet has been refunded.")
         except Exception:
             pass
     finally:
