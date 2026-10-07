@@ -2,6 +2,7 @@ from TEAMZYRO import *
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.errors import PeerIdInvalid
+import aiohttp
 import html
 import time
 from datetime import datetime, timedelta
@@ -113,21 +114,54 @@ async def weekly_gift(client: Client, message: Message):
         f"💳 New Balance: {new_balance} coins"
     )
 
+async def _send_ephemeral_balance(message: Message, text: str):
+    """Send /balance as a Telegram Bot API ephemeral message."""
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {
+        "chat_id": message.chat.id,
+        "text": text,
+        "ephemeral_message_parameters": {
+            "receiver_user_id": message.from_user.id,
+        },
+    }
+
+    timeout = aiohttp.ClientTimeout(total=10)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.post(url, json=payload) as response:
+            data = await response.json(content_type=None)
+            if response.status != 200 or not data.get("ok"):
+                raise RuntimeError(
+                    data.get("description", f"Telegram API error {response.status}")
+                )
+
+
 @app.on_message(filters.command("balance"))
 async def balance(client: Client, message: Message):
     user_id = message.from_user.id
-    
-    if user_id in lock and time.time() - lock[user_id] < 2:  # 2 second cooldown
+
+    if user_id in lock and time.time() - lock[user_id] < 2:
         return
-    
+
     lock[user_id] = time.time()
-    
+
     user_balance, user_tokens = await get_balance(user_id)
     response = (
-        f"{html.escape(message.from_user.first_name)} \n◈⌠ {user_balance} coins⌡\n"
-        f"◈ ⌠ {user_tokens} Tokens⌡"
+        f"{html.escape(message.from_user.first_name)}
+"
+        f"◈⌠ {user_balance} coins⌡
+"
+        f"◈⌠ {user_tokens} Tokens⌡"
     )
-    await message.reply_text(response)
+
+    try:
+        await _send_ephemeral_balance(message, response)
+    except Exception as exc:
+        # Never expose the user's balance publicly if ephemeral delivery fails.
+        print(f"Ephemeral /balance failed: {exc}")
+        try:
+            await message.delete()
+        except Exception:
+            pass
 
 @app.on_message(filters.command("pay"))
 async def pay(client: Client, message: Message):
