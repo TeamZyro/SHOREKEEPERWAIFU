@@ -132,6 +132,11 @@ async def _forward_pyrogram_message_to_ptb(client, message):
     if getattr(message, "from_user", None) is None:
         return
 
+    # Keep the original non-command messages only behavior.
+    text = getattr(message, "text", None) or getattr(message, "caption", None) or ""
+    if text.startswith("/"):
+        return
+
     update = _pyrogram_message_to_update(message)
     if update is None:
         return
