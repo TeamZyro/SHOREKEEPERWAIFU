@@ -156,6 +156,13 @@ def buy_art():
     try:
         with mongo.start_session() as session:
             with session.start_transaction():
+                listing_update = art_col.update_one(
+                    {"_id": art_id, "status": "approved", "buyers": {"$ne": buyer_id}},
+                    {"$inc": {"total_sales": 1, "total_earned": price}, "$addToSet": {"buyers": buyer_id}},
+                    session=session,
+                )
+                if listing_update.modified_count != 1:
+                    raise ValueError("ALREADY_BOUGHT")
                 debit = users.update_one({"id": buyer_id, "balance": {"$gte": price}}, {"$inc": {"balance": -price}}, session=session)
                 if debit.modified_count != 1:
                     raise ValueError("NOT_ENOUGH_COINS")
@@ -166,8 +173,6 @@ def buy_art():
                          "img_url": request.host_url.rstrip("/") + image_url(art["image_file_id"]), "name": art["name"],
                          "anime": "Custom Art", "rarity": RARITY, "creator_id": creator_id}
                 users.update_one({"id": buyer_id}, {"$push": {"characters": owned}}, session=session)
-                art_col.update_one({"_id": art_id}, {"$inc": {"total_sales": 1, "total_earned": price},
-                    "$addToSet": {"buyers": buyer_id}}, session=session)
                 sales_col.insert_one({"art_id": str(art_id), "buyer_id": buyer_id, "creator_id": creator_id,
                                       "price": price, "created_at": datetime.utcnow()}, session=session)
                 now = datetime.utcnow()
@@ -177,6 +182,8 @@ def buy_art():
     except ValueError as exc:
         if str(exc) == "NOT_ENOUGH_COINS":
             return jsonify({"error": "Not enough Coins."}), 400
+        if str(exc) == "ALREADY_BOUGHT":
+            return jsonify({"error": "You already own this custom art."}), 409
         LOG.exception("Creator purchase failed")
         return jsonify({"error": "Purchase could not be completed. No Coins were charged."}), 500
     except PyMongoError:
