@@ -20,6 +20,7 @@ rarity_map = {
     19: "🌟 Luminous",
     20: "🌧 Rainy",
     22: "🍭 Winter event",
+    23: "🎨 Customise",  # Reserved for Evo Creator / Art Shop
 }
 
 # RARITY_NAMES updated according to rarity_map
@@ -43,6 +44,8 @@ RARITY_NAMES = [
     "🍑 Echhi",
     "🎗️ AMV Edition",
     "🌧 Rainy",
+    "🍭 Winter event",
+    "🎨 Customise",
 ]
 
 # rarity_map2 updated according to rarity_map
@@ -66,5 +69,7 @@ rarity_map2 = {
     "🍑 Echhi": "🍑",
     "🎗️ AMV Edition": "🎗️",
     "🌧 Rainy": "🌧",
+    "🍭 Winter event": "🍭",
+    "🎨 Customise": "🎨",
 }
 
