@@ -171,7 +171,7 @@ async def api_submit_custom_art(request):
             "custom-" + str(user_id), raw, metadata={"content_type": mime, "creator_id": user_id}
         )
         result = await requests_col.insert_one({
-            "creator_id": user_id, "creator_name": user.get("username") or user.get("first_name") or "Creator",
+            "creator_id": user_id, "creator_name": user.get("first_name") or user.get("username") or "Creator",
             "name": name, "anime": anime, "description": description, "price": price, "rarity": RARITY,
             "image_file_id": str(image_id), "status": "pending", "created_at": datetime.utcnow(),
             "evo_cost": SLOT_COST,
