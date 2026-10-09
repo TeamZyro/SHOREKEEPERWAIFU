@@ -13,6 +13,8 @@ import os  # For environment variables
 # Support channel ID or username (configurable via environment variable for Heroku)
 SUPPORT_CHANNEL = MUSJ_JOIN  # Default to your channel username
 
+custom_art_collection = db["custom_characters"]
+
 async def check_support_channel(client: Client, user_id: int) -> bool:
     if user_id == x:
         return True
@@ -128,7 +130,20 @@ async def display_harem(client, message, user_id, page, filter_rarity, is_initia
             for character in chars:
                 count = character_counts[character['id']]
                 rarity_emoji = rarity_map2.get(character.get('rarity'), '')
-                harem_message += f'  ◈⌠{rarity_emoji}⌡ <code>{character["id"]}</code> {character["name"]} <b>(x{count})</b>\n'
+                creator_line = ""
+                creator_id = character.get("creator_id")
+                creator_name = character.get("creator_name")
+                if creator_id:
+                    if not creator_name or creator_name == "Creator":
+                        art = await custom_art_collection.find_one(
+                            {"character_id": str(character.get("id", ""))},
+                            {"creator_id": 1, "creator_name": 1},
+                        )
+                        if art:
+                            creator_id = art.get("creator_id", creator_id)
+                            creator_name = art.get("creator_name") or creator_name
+                    creator_line = f' — 👤 <a href="tg://user?id={creator_id}">{escape(str(creator_name or "Creator"))}</a>'
+                harem_message += f'  ◈⌠{rarity_emoji}⌡ <code>{character["id"]}</code> {escape(str(character["name"]))} <b>(x{count})</b>{creator_line}\\n'
         harem_message += "</blockquote>"
 
         # Add inline buttons for collection and video-only collection with counts
