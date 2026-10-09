@@ -92,7 +92,7 @@ def is_video(url):
 
 # ---------------- SHOP MENU ---------------- #
 
-@app.on_message(filters.command("legacyshopdisabled"))
+@app.on_message(filters.command(["legacyshopdisabled", "hshop", "hshopmenu"]))
 async def shop_menu(client, message):
     keyboard = []
     for i, r in enumerate(RARITY_PRICE.keys()):
