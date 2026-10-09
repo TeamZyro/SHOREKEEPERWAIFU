@@ -15,7 +15,7 @@ from bson import ObjectId
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
-from TEAMZYRO import app, db, user_collection, TOKEN, SUDO, OWNER_ID, ddw
+from TEAMZYRO import app, db, user_collection, collection, TOKEN, SUDO, OWNER_ID, ddw
 
 LOG = logging.getLogger(__name__)
 SLOT_COST = 5000
@@ -74,6 +74,25 @@ def json_error(message, status=400):
     return web.json_response({"error": message}, status=status)
 
 
+async def find_next_character_id():
+    """Use the same lowest-free numeric ID sequence as normal /upload, while reserving IDs used by approved custom art."""
+    used_ids = set()
+    async for item in collection.find({}, {"id": 1}):
+        try:
+            used_ids.add(int(item["id"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    async for item in art_col.find({"character_id": {"$exists": True}}, {"character_id": 1}):
+        try:
+            used_ids.add(int(item["character_id"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    candidate = 1
+    while candidate in used_ids:
+        candidate += 1
+    return str(candidate).zfill(2)
+
+
 async def serve_art_shop_html(request):
     path = os.path.join(os.path.dirname(__file__), "..", "templates", "art_shop.html")
     if not os.path.isfile(path):
@@ -87,7 +106,7 @@ async def api_list_custom_art(request):
     cursor = art_col.find({"status": "approved"}).sort("published_at", -1).limit(100)
     async for item in cursor:
         items.append({
-            "id": str(item["_id"]), "name": item["name"], "anime": item.get("anime", "Unknown Anime"),
+            "id": str(item["_id"]), "character_id": item.get("character_id", ""), "name": item["name"], "anime": item.get("anime", "Unknown Anime"),
             "description": item.get("description", ""), "price": int(item["price"]),
             "creator_name": item.get("creator_name") or "Creator",
             "rarity": RARITY, "image_url": "/api/art/image/" + str(item["image_file_id"]),
@@ -211,7 +230,7 @@ async def api_buy_custom_art(request):
                 await user_collection.update_one({"id": buyer_id}, {"$push": {"characters": {
                     "_id": ObjectId(), "id": "custom_" + str(art_id), "custom_id": str(art_id),
                     "img_url": request.scheme + "://" + request.host + "/api/art/image/" + str(art["image_file_id"]),
-                    "name": art["name"], "anime": art.get("anime", "Unknown Anime"), "rarity": RARITY, "creator_id": creator_id,
+                    "name": art["name"], "anime": art.get("anime", "Unknown Anime"), "rarity": RARITY, "creator_id": creator_id, "id": art["character_id"],
                 }}}, session=session)
                 now = datetime.utcnow()
                 await sales_col.insert_one({
@@ -317,20 +336,21 @@ async def approve_custom_art(client, query):
     if not item:
         return await query.answer("Request already reviewed.", show_alert=True)
     try:
+        character_id = await find_next_character_id()
         listing = await art_col.insert_one({
             "creator_id": item["creator_id"], "creator_name": item.get("creator_name", "Creator"),
             "name": item["name"], "anime": item.get("anime", "Unknown Anime"), "description": item.get("description", ""), "price": item["price"],
-            "rarity": RARITY, "image_file_id": item["image_file_id"], "status": "approved",
+            "character_id": character_id, "rarity": RARITY, "image_file_id": item["image_file_id"], "status": "approved",
             "published_at": datetime.utcnow(), "total_sales": 0, "total_earned": 0, "buyers": [],
         })
-        await requests_col.update_one({"_id": request_id}, {"$set": {"published_art_id": str(listing.inserted_id)}})
+        await requests_col.update_one({"_id": request_id}, {"$set": {"published_art_id": str(listing.inserted_id), "character_id": character_id}})
     except Exception:
         # Keep a retryable status if publishing failed; no Evo refund on approval.
         await requests_col.update_one({"_id": request_id, "status": "approved"}, {"$set": {"status": "pending"}})
         LOG.exception("Custom art publication failed")
         return await query.answer("Publishing failed; request returned to pending.", show_alert=True)
     try:
-        await app.send_message(item["creator_id"], "✅ Your custom character " + item["name"] + " (" + item.get("anime", "Unknown Anime") + ") was approved and listed in Art Shop!")
+        await app.send_message(item["creator_id"], "✅ Your custom character " + item["name"] + " (" + item.get("anime", "Unknown Anime") + ") was approved! Character ID: " + character_id + ". It is available only in Art Shop.")
     except Exception:
         pass
     await query.message.edit_caption((query.message.caption or "") + "\n\n✅ APPROVED and published")
