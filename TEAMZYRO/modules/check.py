@@ -1,9 +1,13 @@
 # TEAMZYRO/commands/check.py
-from TEAMZYRO import app, collection as character_collection, user_collection
+from TEAMZYRO import app, collection as character_collection, user_collection, db
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+from io import BytesIO
+from html import escape
 
-import asyncio 
+custom_art_collection = db["custom_characters"]
+custom_art_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="custom_art_images")
 
 @app.on_message(filters.command("check"))
 async def check_character(client, message):
@@ -12,33 +16,77 @@ async def check_character(client, message):
         await message.reply_text("Please provide a Character ID: `/check <character_id>`")
         return
 
-    character_id = args[1]
-    character = await character_collection.find_one({'id': character_id})
+    character_id = str(args[1])
+    character = await character_collection.find_one({"id": character_id})
+    custom_art = None
+
+    if not character:
+        custom_art = await custom_art_collection.find_one({
+            "character_id": character_id,
+            "status": "approved",
+        })
+        if custom_art:
+            character = {
+                "id": custom_art["character_id"],
+                "name": custom_art.get("name", "Unknown"),
+                "anime": custom_art.get("anime", "Unknown Anime"),
+                "rarity": "customise",
+                "creator_id": custom_art.get("creator_id"),
+                "creator_name": custom_art.get("creator_name", "Creator"),
+            }
 
     if not character:
         await message.reply_text("Character not found.")
         return
 
-    # Power nikaalo using rarity
+    creator_id = character.get("creator_id")
+    creator_name = escape(str(character.get("creator_name", "Creator")))
+    creator_line = ""
+    if creator_id:
+        creator_line = (
+            f"\\n👤 Creator: <a href='tg://user?id={creator_id}'>"
+            f"{creator_name}</a>"
+        )
 
-    # Create the 'Who Have It' button
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("Who Have It", callback_data=f"whohaveit_{character_id}")]
     ])
-
-    # Send character details
     text = (
-        f"🌟 **Character Info**\n"
-        f"🆔 ID: `{character_id}`\n"
-        f"📛 Name: {character['name']}\n"
-        f"📺 Anime: {character['anime']}\n"
-        f"💎 Rarity: {character['rarity']}\n"
+        f"🌟 <b>Character Info</b>\\n"
+        f"🆔 ID: <code>{escape(character_id)}</code>\\n"
+        f"📛 Name: {escape(str(character.get('name', 'Unknown')))}\\n"
+        f"📺 Anime: {escape(str(character.get('anime', 'Unknown Anime')))}\\n"
+        f"💎 Rarity: {escape(str(character.get('rarity', 'Unknown')))}"
+        f"{creator_line}"
     )
 
-    if 'vid_url' in character:
-        await message.reply_video(character['vid_url'], caption=text, reply_markup=keyboard)
+    if custom_art:
+        try:
+            stream = await custom_art_bucket.open_download_stream(custom_art["image_file_id"])
+            photo = BytesIO(await stream.read())
+            content_type = (stream.metadata or {}).get("content_type", "image/jpeg")
+            photo.name = {
+                "image/png": "custom-art.png",
+                "image/webp": "custom-art.webp",
+            }.get(content_type, "custom-art.jpg")
+            await message.reply_photo(
+                photo, caption=text, reply_markup=keyboard,
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception:
+            await message.reply_text("Could not load this custom art image right now.")
+        return
+
+    if "vid_url" in character:
+        await message.reply_video(
+            character["vid_url"], caption=text, reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
     else:
-        await message.reply_photo(character['img_url'], caption=text, reply_markup=keyboard)
+        await message.reply_photo(
+            character["img_url"], caption=text, reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
 
 
 @app.on_callback_query(filters.regex("^whohaveit_"))
