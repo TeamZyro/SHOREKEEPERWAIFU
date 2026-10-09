@@ -37,39 +37,35 @@ rarity_map = {
 }
 """
 
+async def _used_character_ids():
+    ids = set()
+    async for doc in collection.find({}, {"id": 1}):
+        try:
+            ids.add(int(doc["id"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+
+    # Approved creator-shop characters reserve IDs too, but stay in a separate
+    # collection so the normal character drop system never spawns them.
+    custom_art_collection = db["custom_characters"]
+    async for doc in custom_art_collection.find({"character_id": {"$exists": True}}, {"character_id": 1}):
+        try:
+            ids.add(int(doc["character_id"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return ids
+
+
 async def find():
-    cursor = collection.find().sort('id', 1)
-    ids = []
-
-    async for doc in cursor:
-        if 'id' in doc:
-            ids.append(int(doc['id']))
-
-    # Check for gaps in the sequence
-    ids.sort()
-    for i in range(1, len(ids) + 2):  # Include one extra for the next ID if no gaps
-        if i not in ids:
-            return str(i).zfill(2)  # Return the missing ID
-
-    return str(len(ids) + 1).zfill(2)  # If no gaps, return the next sequential ID
+    ids = await _used_character_ids()
+    candidate = 1
+    while candidate in ids:
+        candidate += 1
+    return str(candidate).zfill(2)
 
 
-# Function to find the next available ID for a character
 async def find_available_id():
-    cursor = collection.find().sort('id', 1)
-    ids = []
-
-    async for doc in cursor:
-        if 'id' in doc:
-            ids.append(int(doc['id']))
-
-    # Check for gaps in the sequence
-    ids.sort()
-    for i in range(1, len(ids) + 2):  # Include one extra for the next ID if no gaps
-        if i not in ids:
-            return str(i).zfill(2)  # Return the missing ID
-
-    return str(len(ids) + 1).zfill(2)  # If no gaps, return the next sequential ID
+    return await find()
 
 
 def upload_to_catbox(file_path=None, file_url=None, expires=None, secret=None):
