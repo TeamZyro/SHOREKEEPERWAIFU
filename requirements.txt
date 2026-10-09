@@ -18,5 +18,3 @@ kurigram
 aiogram
 chess
 playwright==1.54.0
-
-Flask
