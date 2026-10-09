@@ -143,7 +143,7 @@ async def display_harem(client, message, user_id, page, filter_rarity, is_initia
                             creator_id = art.get("creator_id", creator_id)
                             creator_name = art.get("creator_name") or creator_name
                     creator_line = f' — 👤 <a href="tg://user?id={creator_id}">{escape(str(creator_name or "Creator"))}</a>'
-                harem_message += f'  ◈⌠{rarity_emoji}⌡ <code>{character["id"]}</code> {escape(str(character["name"]))} <b>(x{count})</b>{creator_line}\\n'
+                harem_message += f'  ◈⌠{rarity_emoji}⌡ <code>{character["id"]}</code> {escape(str(character["name"]))} <b>(x{count})</b>{creator_line}\n'
         harem_message += "</blockquote>"
 
         # Add inline buttons for collection and video-only collection with counts
