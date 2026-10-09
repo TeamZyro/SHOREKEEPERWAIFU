@@ -22,7 +22,6 @@ SLOT_COST = 5000
 MIN_PRICE = 10000
 MAX_PRICE = 1000000
 RARITY = "customise"
-ART_SHOP_URL = os.getenv("ART_SHOP_URL", os.getenv("WEBAPP_URL", "")).rstrip("/")
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 requests_col = db["custom_art_requests"]
@@ -246,9 +245,10 @@ def register_evo_creator_routes(app_web):
 
 @app.on_message(filters.command("customise"))
 async def customise_command(client, message):
-    if not ART_SHOP_URL:
-        return await message.reply_text("Creator Studio URL is not configured. Set ART_SHOP_URL or WEBAPP_URL.")
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🎨 Open Creator Studio", web_app=WebAppInfo(url=ART_SHOP_URL + "/customise"))]])
+    bot_username = client.me.username if client.me else "shorekeeper_RoBot"
+    # Reuse the bot's already-configured Main Mini App, exactly like Chess.
+    webapp_url = f"https://t.me/{bot_username}?startapp=customise"
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🎨 Open Creator Studio", url=webapp_url)]])
     await message.reply_text(
         "🎨 **Evo Creator Studio**\n\nSubmit your character for admin approval.\n"
         "• Submission cost: 5,000 Evo Points\n• Rarity is locked to customise\n"
@@ -259,9 +259,10 @@ async def customise_command(client, message):
 
 @app.on_message(filters.command("shop"))
 async def art_shop_command(client, message):
-    if not ART_SHOP_URL:
-        return await message.reply_text("Art Shop URL is not configured. Set ART_SHOP_URL or WEBAPP_URL.")
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🛍️ Open Art Shop", web_app=WebAppInfo(url=ART_SHOP_URL + "/art-shop"))]])
+    bot_username = client.me.username if client.me else "shorekeeper_RoBot"
+    # Reuse the bot's already-configured Main Mini App, exactly like Chess.
+    webapp_url = f"https://t.me/{bot_username}?startapp=artshop"
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🛍️ Open Art Shop", url=webapp_url)]])
     await message.reply_text("🛍️ **Art Shop**\n\nBrowse and buy community-created custom characters only.", reply_markup=keyboard)
 
 
