@@ -15,7 +15,7 @@ LOG = logging.getLogger(__name__)
 SLOT_COST, MIN_PRICE, MAX_PRICE, RARITY = 5000, 10000, 1000000, "customise"
 ART_SHOP_URL = os.getenv("ART_SHOP_URL", "").rstrip("/")
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
-web = Flask(__name__, template_folder="../../web")
+web = Flask(__name__, template_folder="../../web/templates")
 web.config["MAX_CONTENT_LENGTH"] = MAX_IMAGE_BYTES + 256 * 1024
 mongo = MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
 database = mongo["shoreskeeper"]
