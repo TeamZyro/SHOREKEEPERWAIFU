@@ -4,7 +4,9 @@ import random
 import asyncio
 import html
 from TEAMZYRO import app as Client
-from TEAMZYRO import user_collection, top_global_groups_collection
+from TEAMZYRO import user_collection, top_global_groups_collection, db
+
+custom_art_collection = db["custom_characters"]
 
 PHOTO_URL = ["https://ibb.co/VY9Fwqmp"]  
 
@@ -29,7 +31,7 @@ async def rank(client, message):
         ],
         [
             InlineKeyboardButton("MTOP", callback_data="mtop"),
-            InlineKeyboardButton("Tokens", callback_data="tokens"),
+            InlineKeyboardButton("Top Arts", callback_data="top_arts"),
         ],
     ]
 
@@ -48,7 +50,7 @@ async def update_caption(callback_query, caption, active_button):
         ],
         [
             InlineKeyboardButton("✅ MTOP" if active_button == "mtop" else "MTOP", callback_data="mtop"),
-            InlineKeyboardButton("✅ Tokens" if active_button == "tokens" else "Tokens", callback_data="tokens"),
+            InlineKeyboardButton("✅ Top Arts" if active_button == "top_arts" else "Top Arts", callback_data="top_arts"),
         ],
     ]
 
@@ -107,16 +109,31 @@ async def mtop_callback(client, callback_query):
 
     await update_caption(callback_query, caption, "mtop")
 
-@Client.on_callback_query(filters.regex("^tokens$"))
-async def tokens_callback(client, callback_query):
+@Client.on_callback_query(filters.regex("^top_arts$"))
+async def top_arts_callback(client, callback_query):
     await asyncio.sleep(1)
-    top_users = await user_collection.find().sort("tokens", -1).limit(10).to_list(length=10)
+    arts = await custom_art_collection.find({"status": "approved"}).sort(
+        [("total_sales", -1), ("total_earned", -1), ("published_at", -1)]
+    ).limit(10).to_list(length=10)
 
-    caption = "🪙 <b>TOKEN RANKING</b>\n\n"
-    for rank, user in enumerate(top_users, start=1):
-        user_id = user.get("id", "Unknown")
-        first_name = user.get("first_name", "Unknown")
-        tokens = user.get("tokens", 0)
-        caption += f"{rank}. <a href='tg://user?id={user_id}'><b>{first_name}</b></a>: 🪙 {tokens} Tokens\n"
+    caption = "🎨 <b>TOP ARTS — CREATOR SHOP</b>\\n\\n"
+    if not arts:
+        caption += "No approved custom arts yet.\\n"
+    for rank, art in enumerate(arts, start=1):
+        name = html.escape(str(art.get("name", "Untitled"))[:40])
+        anime = html.escape(str(art.get("anime", "Unknown Anime"))[:35])
+        creator_id = art.get("creator_id")
+        creator_name = html.escape(str(art.get("creator_name", "Creator"))[:30])
+        creator = (
+            f"<a href='tg://user?id={creator_id}'>{creator_name}</a>"
+            if creator_id else creator_name
+        )
+        sales = int(art.get("total_sales", 0))
+        price = int(art.get("price", 0))
+        caption += (
+            f"{rank}. <b>{name}</b> — {anime}\\n"
+            f"   👤 Creator: {creator}\\n"
+            f"   🛍 Sales: {sales} | 💰 Price: {price:,} Coins\\n\\n"
+        )
 
-    await update_caption(callback_query, caption, "tokens")
+    await update_caption(callback_query, caption, "top_arts")
