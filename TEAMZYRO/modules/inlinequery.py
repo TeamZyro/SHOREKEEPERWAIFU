@@ -102,7 +102,7 @@ async def inlinequery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 f"(x{user_character_count})</b>\n"
                 f"🏖️ From: <b>{escape(str(character.get('anime', 'Unknown')))}</b>\n"
                 f"🔮 Rarity: <b>{escape(str(character.get('rarity', 'Unknown')))}</b>\n\n"
-                f"🆔️ <b>{character.get('id', 'Unknown')}</b>\n\n"
+                f"🆔️ <b>{character.get('id', 'Unknown')}</b>{creator_caption}\n\n"
             )
         else:
             caption = (
@@ -110,7 +110,7 @@ async def inlinequery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 f"🌸 <b>{escape(str(character.get('name', 'Unknown')))}</b>\n"
                 f"🏖️ From: <b>{escape(str(character.get('anime', 'Unknown')))}</b>\n"
                 f"🔮 Rarity: <b>{escape(str(character.get('rarity', 'Unknown')))}</b>\n"
-                f"🆔️ <b>{character.get('id', 'Unknown')}</b>\n\n"
+                f"🆔️ <b>{character.get('id', 'Unknown')}</b>{creator_caption}\n\n"
             )
 
         result_id = f"{character.get('id', 'unknown')}_{time.time_ns()}"
