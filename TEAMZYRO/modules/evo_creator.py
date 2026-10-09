@@ -277,17 +277,24 @@ async def pending_custom_art(client, message):
         try:
             stream = await image_bucket.open_download_stream(ObjectId(item["image_file_id"]))
             photo = BytesIO(await stream.read())
-            photo.name = "custom-art"
+            content_type = (stream.metadata or {}).get("content_type", "image/jpeg")
+            extension = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}.get(content_type, ".jpg")
+            photo.name = "custom-art" + extension
+            caption = (
+                "Pending Custom Art\nName: " + item["name"] +
+                "\nCreator ID: " + str(item["creator_id"]) + "\nPrice: " + format(item["price"], ",") +
+                " Coins\nRarity: customise\nRequest: " + str(item["_id"])
+            )
             keyboard = InlineKeyboardMarkup([[
                 InlineKeyboardButton("✅ Approve", callback_data="evoapprove:" + str(item["_id"])),
                 InlineKeyboardButton("❌ Reject + Refund", callback_data="evoreject:" + str(item["_id"])),
             ]])
-            await message.reply_photo(
-                photo, caption="Pending Custom Art\nName: " + item["name"] +
-                "\nCreator ID: " + str(item["creator_id"]) + "\nPrice: " + format(item["price"], ",") +
-                " Coins\nRarity: customise\nRequest: " + str(item["_id"]),
-                reply_markup=keyboard,
-            )
+            # Telegram photo uploads require a supported filename extension; non-JPEG
+            # formats are sent as documents so PNG/WebP submissions remain reviewable.
+            if content_type == "image/jpeg":
+                await message.reply_photo(photo, caption=caption, reply_markup=keyboard)
+            else:
+                await message.reply_document(photo, caption=caption, reply_markup=keyboard)
         except Exception:
             LOG.exception("Could not display custom art request")
     if not found:
