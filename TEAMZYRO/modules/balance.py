@@ -11,9 +11,9 @@ from datetime import datetime, timedelta
 lock = {}
 
 async def get_balance(user_id):
-    user_data = await user_collection.find_one({'id': user_id}, {'balance': 1, 'tokens': 1})
+    user_data = await user_collection.find_one({'id': user_id}, {'balance': 1, 'evo_points': 1})
     if user_data:
-        return user_data.get('balance', 0), user_data.get('tokens', 0)
+        return user_data.get('balance', 0), user_data.get('evo_points', 0)
     return 0, 0
 
 # Daily gift system
@@ -144,11 +144,11 @@ async def balance(client: Client, message: Message):
 
     lock[user_id] = time.time()
 
-    user_balance, user_tokens = await get_balance(user_id)
+    user_balance, evo_points = await get_balance(user_id)
     response = (
         f"{html.escape(message.from_user.first_name)}\n"
         f"◈⌠ {user_balance} coins⌡\n"
-        f"◈⌠ {user_tokens} Tokens⌡"
+        f"◈⌠ {evo_points} Evo Points⌡"
     )
 
     try:
