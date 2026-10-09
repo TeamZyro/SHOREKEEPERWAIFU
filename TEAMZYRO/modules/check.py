@@ -31,7 +31,7 @@ async def check_character(client, message):
                 "id": custom_art["character_id"],
                 "name": custom_art.get("name", "Unknown"),
                 "anime": custom_art.get("anime", "Unknown Anime"),
-                "rarity": "customise",
+                "rarity": "🎨 Customise",
                 "creator_id": custom_art.get("creator_id"),
                 "creator_name": custom_art.get("creator_name", "Creator"),
             }
