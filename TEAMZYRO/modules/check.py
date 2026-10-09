@@ -4,6 +4,7 @@ from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from io import BytesIO
+from bson import ObjectId
 from html import escape
 
 custom_art_collection = db["custom_characters"]
@@ -44,7 +45,7 @@ async def check_character(client, message):
     creator_line = ""
     if creator_id:
         creator_line = (
-            f"\\n👤 Creator: <a href='tg://user?id={creator_id}'>"
+            f"\n👤 Creator: <a href='tg://user?id={creator_id}'>"
             f"{creator_name}</a>"
         )
 
@@ -52,17 +53,17 @@ async def check_character(client, message):
         [InlineKeyboardButton("Who Have It", callback_data=f"whohaveit_{character_id}")]
     ])
     text = (
-        f"🌟 <b>Character Info</b>\\n"
-        f"🆔 ID: <code>{escape(character_id)}</code>\\n"
-        f"📛 Name: {escape(str(character.get('name', 'Unknown')))}\\n"
-        f"📺 Anime: {escape(str(character.get('anime', 'Unknown Anime')))}\\n"
+        f"🌟 <b>Character Info</b>\n"
+        f"🆔 ID: <code>{escape(character_id)}</code>\n"
+        f"📛 Name: {escape(str(character.get('name', 'Unknown')))}\n"
+        f"📺 Anime: {escape(str(character.get('anime', 'Unknown Anime')))}\n"
         f"💎 Rarity: {escape(str(character.get('rarity', 'Unknown')))}"
         f"{creator_line}"
     )
 
     if custom_art:
         try:
-            stream = await custom_art_bucket.open_download_stream(custom_art["image_file_id"])
+            stream = await custom_art_bucket.open_download_stream(ObjectId(custom_art["image_file_id"]))
             photo = BytesIO(await stream.read())
             content_type = (stream.metadata or {}).get("content_type", "image/jpeg")
             photo.name = {
