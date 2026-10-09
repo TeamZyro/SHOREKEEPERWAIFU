@@ -31,7 +31,7 @@ async def get_creator_caption(character):
             creator_id = art.get("creator_id", creator_id)
             creator_name = art.get("creator_name") or creator_name
     creator_name = escape(str(creator_name or "Creator"))
-    return f"\\n👤 <b>Creator:</b> <a href='tg://user?id={creator_id}'>{creator_name}</a>"
+    return f"\n👤 <b>Creator:</b> <a href='tg://user?id={creator_id}'>{creator_name}</a>"
 
 
 async def inlinequery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
