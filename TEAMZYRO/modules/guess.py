@@ -116,6 +116,16 @@ async def guess(client: Client, message: Message):
                 'balance': 40
             })
 
+        # Evo Creator: reward each successful capture with 10 Evo Points (separate from Coins).
+        await user_collection.update_one({"id": user_id}, {"$inc": {"evo_points": 10}}, upsert=True)
+        await db["evo_transactions"].insert_one({
+            "user_id": user_id,
+            "amount": 10,
+            "reason": "successful_character_guess",
+            "chat_id": chat_id,
+            "created_at": datetime.utcnow(),
+        })
+
         keyboard = [[InlineKeyboardButton("See Harem", switch_inline_query_current_chat=f"collection.{user_id}")]]
         await message.reply_text(
             f'🌟 <b><a href="tg://user?id={user_id}">{escape(message.from_user.first_name)}</a></b>, you\'ve captured a new character! 🎊\n\n'
