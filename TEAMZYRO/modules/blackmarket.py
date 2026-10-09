@@ -1235,7 +1235,7 @@ async def serve_webapp_html(request):
 
 async def start_webapp_server():
     port = int(os.getenv("PORT", 8080))
-    app_web = web.Application()
+    app_web = web.Application(client_max_size=7 * 1024 * 1024)
     
     app_web.router.add_options('/api/listings', api_options_handler)
     app_web.router.add_options('/api/harem', api_options_handler)
