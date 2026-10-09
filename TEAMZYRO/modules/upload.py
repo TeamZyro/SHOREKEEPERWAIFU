@@ -34,6 +34,7 @@ rarity_map = {
     19: "🌟 Luminous",
     20: "🌧 Rainy",
     22: "🍭 Winter event",
+    23: "🎨 Customise (Creator Studio only)",
 }
 """
 
@@ -252,8 +253,8 @@ async def ul_main(client, message):
             rarity = int(args[3])
 
             # Validate rarity value
-            if rarity not in rarity_map:
-                await message.reply_text("Invalid rarity value. Please use a value between 1 and 16.")
+            if rarity not in rarity_map or rarity == 23:
+                await message.reply_text("Invalid rarity for /upload. Use a listed rarity number; 🎨 Customise is reserved for Creator Studio submissions.")
                 return
 
             rarity_text = rarity_map[rarity]
