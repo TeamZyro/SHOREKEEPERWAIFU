@@ -844,12 +844,17 @@
         tg.ready();
         tg.expand();
 
-        // Redirect to Chess room if launched via chess deep link
+        // Route all Main Mini App deep links through this existing app.
+        // Chess already uses startapp=chess_<roomId>; Art Shop uses artshop/customise.
         if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
             const startParam = tg.initDataUnsafe.start_param;
-            if (startParam.startsWith('chess_')) {
-                const roomId = startParam.split('_')[1];
-                window.location.href = `/room/${roomId}`;
+            if (startParam === 'artshop') {
+                window.location.replace('/art-shop');
+            } else if (startParam === 'customise') {
+                window.location.replace('/customise');
+            } else if (startParam.startsWith('chess_')) {
+                const roomId = startParam.substring('chess_'.length);
+                window.location.replace(`/room/${encodeURIComponent(roomId)}`);
             }
         }
 
