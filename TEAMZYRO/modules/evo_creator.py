@@ -353,7 +353,7 @@ async def approve_custom_art(client, query):
         await app.send_message(item["creator_id"], "✅ Your custom character " + item["name"] + " (" + item.get("anime", "Unknown Anime") + ") was approved! Character ID: " + character_id + ". It is available only in Art Shop.")
     except Exception:
         pass
-    await query.message.edit_caption((query.message.caption or "") + "\n\n✅ APPROVED and published")
+    await query.message.edit_caption((query.message.caption or "") + "\n\n✅ APPROVED and published\nCharacter ID: " + character_id)
     await query.answer("Published to Art Shop.")
 
 
