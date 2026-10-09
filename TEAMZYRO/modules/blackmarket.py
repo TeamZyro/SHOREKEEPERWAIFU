@@ -1266,6 +1266,14 @@ async def start_webapp_server():
     except Exception as e:
         print(f"Error registering chess routes: {e}")
         traceback.print_exc()
+
+    # Register Evo Creator routes on the same AIOHTTP server (shared port with Chess).
+    try:
+        from TEAMZYRO.modules.evo_creator import register_evo_creator_routes
+        register_evo_creator_routes(app_web)
+    except Exception as e:
+        print(f"Error registering Evo Creator routes: {e}")
+        traceback.print_exc()
         
     runner = web.AppRunner(app_web)
     await runner.setup()
