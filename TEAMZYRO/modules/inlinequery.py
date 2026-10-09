@@ -12,11 +12,26 @@ from telegram import (
 )
 from telegram.ext import InlineQueryHandler, ContextTypes
 
-from TEAMZYRO import app, application
+from TEAMZYRO import app, application, db
+
+custom_art_collection = db["custom_characters"]
 from TEAMZYRO.unit.zyro_inline import *
 
 all_characters_cache = TTLCache(maxsize=10000, ttl=36000)
 user_collection_cache = TTLCache(maxsize=10000, ttl=60)
+
+async def get_creator_caption(character):
+    creator_id = character.get("creator_id")
+    creator_name = character.get("creator_name")
+    if not creator_id:
+        return ""
+    if not creator_name or creator_name == "Creator":
+        art = await custom_art_collection.find_one({"character_id": str(character.get("id", ""))})
+        if art:
+            creator_id = art.get("creator_id", creator_id)
+            creator_name = art.get("creator_name") or creator_name
+    creator_name = escape(str(creator_name or "Creator"))
+    return f"\\n👤 <b>Creator:</b> <a href='tg://user?id={creator_id}'>{creator_name}</a>"
 
 
 async def inlinequery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -73,6 +88,7 @@ async def inlinequery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     results = []
     for character in characters:
+        creator_caption = await get_creator_caption(character)
         if user:
             user_character_count = sum(
                 1
