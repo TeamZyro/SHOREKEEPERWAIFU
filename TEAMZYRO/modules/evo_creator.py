@@ -87,7 +87,7 @@ async def api_list_custom_art(request):
     cursor = art_col.find({"status": "approved"}).sort("published_at", -1).limit(100)
     async for item in cursor:
         items.append({
-            "id": str(item["_id"]), "name": item["name"],
+            "id": str(item["_id"]), "name": item["name"], "anime": item.get("anime", "Unknown Anime"),
             "description": item.get("description", ""), "price": int(item["price"]),
             "creator_name": item.get("creator_name") or "Creator",
             "rarity": RARITY, "image_url": "/api/art/image/" + str(item["image_file_id"]),
@@ -111,6 +111,7 @@ async def api_submit_custom_art(request):
     user, body = await authenticated_payload(request)
     user_id = int(user["id"])
     name = str(body.get("name", "")).strip()
+    anime = str(body.get("anime", "")).strip()
     description = str(body.get("description", "")).strip()[:500]
     try:
         price = int(body.get("price"))
@@ -118,6 +119,8 @@ async def api_submit_custom_art(request):
         return json_error("Enter a valid Coin price.")
     if not name or len(name) > 60:
         return json_error("Character name must be 1–60 characters.")
+    if not anime or len(anime) > 100:
+        return json_error("Anime name must be 1–100 characters.")
     if not MIN_PRICE <= price <= MAX_PRICE:
         return json_error("Price must be between 10,000 and 1,000,000 Coins.")
     encoded = body.get("image")
@@ -150,7 +153,7 @@ async def api_submit_custom_art(request):
         )
         result = await requests_col.insert_one({
             "creator_id": user_id, "creator_name": user.get("username") or user.get("first_name") or "Creator",
-            "name": name, "description": description, "price": price, "rarity": RARITY,
+            "name": name, "anime": anime, "description": description, "price": price, "rarity": RARITY,
             "image_file_id": str(image_id), "status": "pending", "created_at": datetime.utcnow(),
             "evo_cost": SLOT_COST,
         })
@@ -208,7 +211,7 @@ async def api_buy_custom_art(request):
                 await user_collection.update_one({"id": buyer_id}, {"$push": {"characters": {
                     "_id": ObjectId(), "id": "custom_" + str(art_id), "custom_id": str(art_id),
                     "img_url": request.scheme + "://" + request.host + "/api/art/image/" + str(art["image_file_id"]),
-                    "name": art["name"], "anime": "Custom Art", "rarity": RARITY, "creator_id": creator_id,
+                    "name": art["name"], "anime": art.get("anime", "Unknown Anime"), "rarity": RARITY, "creator_id": creator_id,
                 }}}, session=session)
                 now = datetime.utcnow()
                 await sales_col.insert_one({
@@ -283,7 +286,7 @@ async def pending_custom_art(client, message):
             caption = (
                 "Pending Custom Art\nName: " + item["name"] +
                 "\nCreator ID: " + str(item["creator_id"]) + "\nPrice: " + format(item["price"], ",") +
-                " Coins\nRarity: customise\nRequest: " + str(item["_id"])
+                " Coins\nAnime: " + item.get("anime", "Unknown Anime") + "\nRarity: customise\nRequest: " + str(item["_id"])
             )
             keyboard = InlineKeyboardMarkup([[
                 InlineKeyboardButton("✅ Approve", callback_data="evoapprove:" + str(item["_id"])),
@@ -316,7 +319,7 @@ async def approve_custom_art(client, query):
     try:
         listing = await art_col.insert_one({
             "creator_id": item["creator_id"], "creator_name": item.get("creator_name", "Creator"),
-            "name": item["name"], "description": item.get("description", ""), "price": item["price"],
+            "name": item["name"], "anime": item.get("anime", "Unknown Anime"), "description": item.get("description", ""), "price": item["price"],
             "rarity": RARITY, "image_file_id": item["image_file_id"], "status": "approved",
             "published_at": datetime.utcnow(), "total_sales": 0, "total_earned": 0, "buyers": [],
         })
@@ -327,7 +330,7 @@ async def approve_custom_art(client, query):
         LOG.exception("Custom art publication failed")
         return await query.answer("Publishing failed; request returned to pending.", show_alert=True)
     try:
-        await app.send_message(item["creator_id"], "✅ Your custom character " + item["name"] + " was approved and listed in Art Shop!")
+        await app.send_message(item["creator_id"], "✅ Your custom character " + item["name"] + " (" + item.get("anime", "Unknown Anime") + ") was approved and listed in Art Shop!")
     except Exception:
         pass
     await query.message.edit_caption((query.message.caption or "") + "\n\n✅ APPROVED and published")
