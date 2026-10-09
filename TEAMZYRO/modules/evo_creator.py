@@ -21,7 +21,7 @@ LOG = logging.getLogger(__name__)
 SLOT_COST = 5000
 MIN_PRICE = 10000
 MAX_PRICE = 1000000
-RARITY = "customise"
+RARITY = "🎨 Customise"
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 requests_col = db["custom_art_requests"]
