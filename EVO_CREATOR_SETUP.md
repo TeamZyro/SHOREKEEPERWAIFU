@@ -3,7 +3,7 @@
 The Creator Studio and Art Shop are registered on the existing AIOHTTP server in `TEAMZYRO/modules/blackmarket.py`, alongside the Chess Mini App. No second web server or Flask dependency is used.
 
 ## Configuration
-- Set `WEBAPP_URL` (or `ART_SHOP_URL`) to the same public HTTPS origin already used for the Chess/Black Market Mini Apps.
+- No `ART_SHOP_URL` or `WEBAPP_URL` is needed for the Art Shop buttons. They reuse the bot's existing Main Mini App deep-link flow, like Chess (`https://t.me/<bot>?startapp=...`). The bot's existing Main Mini App setup must remain configured as it is for Chess.
 - Configure the Telegram Mini App domain in BotFather.
 - Keep bot token and MongoDB credentials in environment variables.
 
