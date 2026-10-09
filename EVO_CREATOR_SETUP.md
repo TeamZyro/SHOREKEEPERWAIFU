@@ -1,27 +1,26 @@
 # Evo Creator / Art Shop
 
-Branch-only implementation for Evo Creator and custom-art marketplace.
+The Creator Studio and Art Shop are registered on the existing AIOHTTP server in `TEAMZYRO/modules/blackmarket.py`, alongside the Chess Mini App. No second web server or Flask dependency is used.
 
 ## Configuration
-- Set ART_SHOP_URL to this service's public HTTPS origin.
-- Set PORT through the host.
+- Set `WEBAPP_URL` (or `ART_SHOP_URL`) to the same public HTTPS origin already used for the Chess/Black Market Mini Apps.
 - Configure the Telegram Mini App domain in BotFather.
 - Keep bot token and MongoDB credentials in environment variables.
 
 ## Commands
-- /customise opens Creator Studio.
-- /shop opens the custom-art-only Art Shop.
-- /custompending is admin-only review queue.
+- `/customise` opens Creator Studio.
+- `/shop` opens the custom-art-only Art Shop.
+- `/custompending` is the admin-only review queue.
 - Approval publishes the listing; rejection refunds held 5,000 Evo Points.
 
 ## Rules
 - Successful guess reward: 10 Evo Points.
 - Submission cost: 5,000 Evo Points.
-- Locked rarity: customise.
+- Locked rarity: `customise`.
 - Price: 10,000–1,000,000 Coins.
-- Multiple buyers may buy each approved character.
+- Multiple different users may buy each approved character; each buyer can buy a listing once.
 - Creator receives 100% of each sale in bot Coins.
 - Art Shop lists only approved custom art.
 
-## Deployment
-Flask uses MongoDB GridFS for image storage and MongoDB transactions for purchase consistency. Transactions require Atlas/replica-set or sharded-cluster MongoDB. Test staging before production.
+## Storage and deployment
+Images use MongoDB GridFS. Purchase balance changes use MongoDB transactions, which require Atlas/replica-set or sharded-cluster MongoDB. Test the purchase/refund paths in staging before production.
