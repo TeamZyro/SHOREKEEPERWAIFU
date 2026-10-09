@@ -230,7 +230,7 @@ async def api_buy_custom_art(request):
                 await user_collection.update_one({"id": buyer_id}, {"$push": {"characters": {
                     "_id": ObjectId(), "id": "custom_" + str(art_id), "custom_id": str(art_id),
                     "img_url": request.scheme + "://" + request.host + "/api/art/image/" + str(art["image_file_id"]),
-                    "name": art["name"], "anime": art.get("anime", "Unknown Anime"), "rarity": RARITY, "creator_id": creator_id, "id": art["character_id"],
+                    "name": art["name"], "anime": art.get("anime", "Unknown Anime"), "rarity": RARITY, "creator_id": creator_id, "creator_name": art.get("creator_name", "Creator"), "id": art["character_id"],
                 }}}, session=session)
                 now = datetime.utcnow()
                 await sales_col.insert_one({
