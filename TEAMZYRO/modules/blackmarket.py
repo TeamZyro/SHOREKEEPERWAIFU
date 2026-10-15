@@ -300,6 +300,17 @@ async def black_market_catalog(client, message):
     page = 0
     await display_black_market(client, message, page, is_initial=True)
 
+@app.on_message(filters.command("shope"))
+async def shope_command(client, message):
+    bot_user = await client.get_me()
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🛒 Open Web Shop", url=f"https://t.me/{bot_user.username}?startapp=true")]
+    ])
+    await message.reply_text(
+        "🛍️ **Web Shop**\nTap below to open the Web App.",
+        reply_markup=keyboard
+    )
+
 @app.on_message(filters.command("my_listings"))
 async def my_listings_command(client, message):
     user_id = message.from_user.id
